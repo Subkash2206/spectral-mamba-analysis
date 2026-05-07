@@ -1,7 +1,6 @@
 data/
 best-ckpt/
 pretrained_weights/
-results/
 __pycache__/
 *.pth
 *.h5

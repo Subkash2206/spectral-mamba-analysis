@@ -1,3 +1,3 @@
-# Spectral Analysis of State Space Models for Vision
+The results of experiments could be found here.
 
-Investigating whether Mamba architectures suppress high-frequency spatial information and its effect on boundary segmentation performance.
+Our results on the ISIC17, ISIC18 and Synapse datasets could be found [here](https://pan.baidu.com/s/1FzDpfBQGz56BH6v2APoymA?pwd=8bqf)

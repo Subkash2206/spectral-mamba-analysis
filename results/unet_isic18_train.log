@@ -1,0 +1,14 @@
+Dataset initialized
+Loading model...
+Model loaded
+Epoch 001/100 - Train Loss: 0.3861 - Val Dice: 0.8741
+Epoch 010/100 - Train Loss: 0.1089 - Val Dice: 0.8958
+Epoch 020/100 - Train Loss: 0.0915 - Val Dice: 0.8915
+Epoch 030/100 - Train Loss: 0.0947 - Val Dice: 0.8957
+Epoch 040/100 - Train Loss: 0.0781 - Val Dice: 0.9071
+Epoch 050/100 - Train Loss: 0.0769 - Val Dice: 0.9083
+Epoch 060/100 - Train Loss: 0.0758 - Val Dice: 0.9038
+Epoch 070/100 - Train Loss: 0.0705 - Val Dice: 0.9046
+Epoch 080/100 - Train Loss: 0.0678 - Val Dice: 0.8997
+Epoch 090/100 - Train Loss: 0.0717 - Val Dice: 0.9057
+Epoch 100/100 - Train Loss: 0.0662 - Val Dice: 0.9028
