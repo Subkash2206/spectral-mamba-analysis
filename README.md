@@ -21,48 +21,51 @@ Models were evaluated on the ISIC 2018 skin lesion segmentation benchmark. All c
 
 | Architecture | Paradigm | Global Dice | Boundary F1 (BF1) | Mean AVR |
 | :--- | :--- | :---: | :---: | :---: |
-| **UNet (ResNet50)** | Convolutional | 0.9056 | 0.2380 | 0.1596 |
-| **Swin-UNet** | Attention | 0.9151 | **0.3453** | **0.1282** |
-| **VM-UNet (Mamba)** | Selective Scan | **0.9408** | 0.2252 | 0.1622 |
+| **UNet (ResNet50)** | Convolutional | 0.9056 | 0.2380 | 0.2943 |
+| **Swin-UNet** | Attention | 0.9151 | **0.3453** | 0.3275 |
+| **VM-UNet (Mamba)** | Selective Scan | **0.9408** | 0.2252 | **0.2834** |
 
 ## 2. Core Scientific Findings
 
 ### A. The Mamba Paradox: Global Gain vs. Local Debt
-Mamba architectures (VM-UNet) exhibit a distinctive front-loaded spectral profile. At Level 1 (64x64 resolution), Mamba allocates only **59.2%** of its energy to the low-frequency structural band, compared to **86.1%** for CNNs and **81.9%** for Transformers. 
+Mamba architectures (VM-UNet) exhibit a distinctive front-loaded spectral profile. At Level 1 (64x64 resolution), Mamba allocates only **32.5%** of its energy to the low-frequency structural band, compared to **37.8%** for CNNs and **51.8%** for Transformers (after mean-centering to remove DC component bias).
 
-#### Stage-wise Alias Volume Ratio (AVR)
+> [!NOTE]
+> All spectral measurements use mean-centered feature maps prior to FFT computation, removing DC-offset bias and measuring genuine high-frequency content relative to structural variation.
+
+#### Stage-wise Alias Volume Ratio (AVR, mean-centered)
 | Resolution Level | UNet AVR | Swin-UNet AVR | VM-UNet AVR |
 | :--- | :---: | :---: | :---: |
-| **Level 1 (~64x64)** | 0.0765 | 0.1239 | **0.2650** |
-| **Level 2 (~32x32)** | 0.2097 | 0.1974 | **0.2780** |
-| **Level 3 (~16x16)** | 0.2343 | 0.1379 | 0.0656 |
-| **Level 4 (~8x8)**   | 0.1180 | 0.0537 | 0.0405 |
+| **Level 1 (~64x64)** | 0.3419 | 0.3291 | **0.4391** |
+| **Level 2 (~32x32)** | 0.3587 | 0.3671 | **0.4012** |
+| **Level 3 (~16x16)** | **0.2960** | 0.2493 | 0.1563 |
+| **Level 4 (~8x8)**   | 0.1804 | **0.3646** | 0.1370 |
 
-#### Frequency Band Decomposition (Level 1)
+#### Frequency Band Decomposition, Level 1 (mean-centered)
 | Architecture | Low Band (<0.25 Ny) | Mid Band (0.25-0.75 Ny) | High Band (>0.75 Ny) |
 | :--- | :---: | :---: | :---: |
-| **UNet (CNN)** | 86.05% | 11.04% | 2.90% |
-| **Swin-UNet** | 81.85% | 11.62% | 6.51% |
-| **VM-UNet (Mamba)** | **59.23%** | **27.63%** | **13.13%** |
+| **UNet (CNN)** | 37.84% | 49.19% | 12.97% |
+| **Swin-UNet** | **51.80%** | 30.89% | 17.31% |
+| **VM-UNet (Mamba)** | 32.54% | **45.67%** | **21.79%** |
 
-This results in Mamba carrying nearly **5x higher** energy in the highest frequency band than the CNN baseline. While this allows for exceptional global context (peaking in Dice score), it populates early feature maps with aliasing noise that disrupts boundary delineation.
+After mean-centering, Mamba retains the most high-frequency energy at Level 1 (21.8% vs 13.0% for CNN and 17.3% for Transformer). Notably, Mamba's spectral profile flattens sharply at Levels 3–4, consistent with bottleneck low-pass filtering in the selective scan mechanism.
 
 ### B. Statistical Validation of Spectral Debt
 To prove the causal link between aliasing and edge precision, we performed a per-image correlation analysis (n=150) across all images and architectures.
 
-#### Correlation Results (Mean AVR vs. BF1)
-| Population | Pearson *r* | *p*-value | Significance |
+#### Correlation Results — Mean AVR vs. BF1 (mean-centered FFT)
+| Population | Pearson *r* | *p*-value | Significant? |
 | :--- | :---: | :---: | :--- |
-| **UNet (CNN)** | -0.2218 | 0.1216 | No |
-| **Swin-UNet** | -0.4977 | 0.0002 | **Yes** |
-| **VM-UNet (Mamba)** | -0.3381 | 0.0163 | **Yes** |
-| **Pooled (n=150)** | **-0.4243** | **6.25e-08** | **Highly Significant** |
-| **Partial (Controlled)**| **-0.3947** | **5.77e-07** | **Highly Significant** |
+| **UNet (CNN)** | -0.2003 | 0.1632 | No |
+| **Swin-UNet** | -0.1303 | 0.3671 | No |
+| **VM-UNet (Mamba)** | +0.3219 | 0.0226 | Yes |
+| **Pooled (n=150)** | +0.0541 | 0.5108 | No |
+| **Partial (Controlled)**| +0.0004 | 0.9965 | No |
 
-The highly significant partial correlation proves that the AVR-BF1 relationship holds *within* models, independent of architecture type.
+After removing DC-component bias via mean-centering, the pooled AVR–BF1 correlation is non-significant. The spectral differences between architectures exist but are not predictive of boundary quality once activation-level biases are removed.
 
 ### C. Architectural Sensitivity and "The Non-Finding"
-We identified a novel property of convolutional architectures: CNNs are spectrally "stable" relative to input content. The correlation between AVR and BF1 was non-significant for UNet (p = 0.12), whereas it was highly significant for Swin (p = 0.0002) and Mamba (p = 0.02). This suggests that SSMs and Attention models are more spectrally sensitive to input image content than CNNs.
+We identified that the AVR–BF1 correlation is architecture-dependent and non-significant in the pooled analysis after DC-bias removal. UNet remains spectrally stable (p=0.16), Swin's correlation is also non-significant (p=0.37), and Mamba shows a positive correlation (r=+0.32, p=0.02) — meaning images where Mamba has higher spectral energy also achieve better boundary scores within that model, possibly because richer high-frequency encoding aids fine-grained detection in less ambiguous cases.
 
 ### D. Shift Consistency and Bottleneck Filtering
 Despite its high early-stage AVR, Mamba maintains superior shift consistency compared to Swin-UNet. 
@@ -87,7 +90,7 @@ Visualizing high-frequency leakage in Mamba encoding layers (Averaged across cha
 ![Power Spectrum Grid](figures/power_spectrum_grid.png)
 
 ### Spectral Aliasing vs. Boundary Precision
-Scatter plots proving the negative correlation between AVR and BF1 score (Pooled r = -0.42).
+Scatter plots of AVR vs. BF1 per image across architectures. After mean-centering, the pooled correlation is non-significant (r = +0.05).
 ![AVR vs BF1 Scatter](figures/avr_bf1_scatter.png)
 
 ### Translation Equivariance Curves
