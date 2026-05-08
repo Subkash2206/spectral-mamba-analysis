@@ -23,7 +23,7 @@ Models were evaluated on the ISIC 2018 skin lesion segmentation benchmark. All c
 | :--- | :--- | :---: | :---: | :---: |
 | **UNet (ResNet50)** | Convolutional | 0.9056 | 0.2380 | 0.1596 |
 | **Swin-UNet** | Attention | 0.9151 | **0.3453** | **0.1282** |
-| **VM-UNet** | Selective Scan | **0.9167** | 0.3139 | 0.1622 |
+| **VM-UNet (Mamba)** | Selective Scan | **0.9408** | 0.2252 | 0.1622 |
 
 ## 2. Core Scientific Findings
 
@@ -53,11 +53,11 @@ To prove the causal link between aliasing and edge precision, we performed a per
 #### Correlation Results (Mean AVR vs. BF1)
 | Population | Pearson *r* | *p*-value | Significance |
 | :--- | :---: | :---: | :--- |
-| **UNet (CNN)** | -0.2218 | 0.1215 | No |
+| **UNet (CNN)** | -0.2218 | 0.1216 | No |
 | **Swin-UNet** | -0.4977 | 0.0002 | **Yes** |
-| **VM-UNet (Mamba)** | -0.3243 | 0.0215 | **Yes** |
-| **Pooled (n=150)** | **-0.4414** | **1.56e-08** | **Highly Significant** |
-| **Partial (Controlled)**| **-0.3935** | **6.30e-07** | **Highly Significant** |
+| **VM-UNet (Mamba)** | -0.3381 | 0.0163 | **Yes** |
+| **Pooled (n=150)** | **-0.4243** | **6.25e-08** | **Highly Significant** |
+| **Partial (Controlled)**| **-0.3947** | **5.77e-07** | **Highly Significant** |
 
 The highly significant partial correlation proves that the AVR-BF1 relationship holds *within* models, independent of architecture type.
 
@@ -71,7 +71,7 @@ Despite its high early-stage AVR, Mamba maintains superior shift consistency com
 | Architecture | 1px Shift | 3px Shift | 5px Shift |
 | :--- | :---: | :---: | :---: |
 | **UNet (CNN)** | 0.9864 | 0.9678 | **0.9693** |
-| **VM-UNet (Mamba)** | 0.9753 | 0.9549 | 0.9536 |
+| **VM-UNet (Mamba)** | 0.9755 | 0.9551 | 0.9532 |
 | **Swin-UNet** | 0.9670 | 0.9484 | 0.9196 |
 
 This is explained by Mamba's resolution-dependent filtering: while AVR is extremely high in early stages, it drops significantly at the bottleneck (Level 4 AVR: 0.04), whereas Swin-UNet collapses due to rigid window boundary artifacts.
@@ -87,7 +87,7 @@ Visualizing high-frequency leakage in Mamba encoding layers (Averaged across cha
 ![Power Spectrum Grid](figures/power_spectrum_grid.png)
 
 ### Spectral Aliasing vs. Boundary Precision
-Scatter plots proving the negative correlation between AVR and BF1 score (Pooled r = -0.44).
+Scatter plots proving the negative correlation between AVR and BF1 score (Pooled r = -0.42).
 ![AVR vs BF1 Scatter](figures/avr_bf1_scatter.png)
 
 ### Translation Equivariance Curves
