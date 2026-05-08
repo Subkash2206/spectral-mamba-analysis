@@ -40,6 +40,24 @@ class MockArgs:
         self.resume = None; self.accumulation_steps = None; self.use_checkpoint = False
         self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
 
+def flexible_load(model, ckpt_path):
+    print(f"Loading weights from {ckpt_path}...")
+    state_dict = torch.load(ckpt_path, map_location='cpu')
+    if 'model' in state_dict: state_dict = state_dict['model']
+    model_dict = model.state_dict()
+    has_vmunet_prefix = any(k.startswith('vmunet.') for k in state_dict.keys())
+    model_has_vmunet_prefix = any(k.startswith('vmunet.') for k in model_dict.keys())
+    clean_state_dict = {k: v for k, v in state_dict.items() if not k.endswith('total_ops') and not k.endswith('total_params')}
+    new_state_dict = {}
+    for k, v in clean_state_dict.items():
+        new_k = k
+        if has_vmunet_prefix and not model_has_vmunet_prefix: new_k = k.replace('vmunet.', '')
+        elif not has_vmunet_prefix and model_has_vmunet_prefix: new_k = 'vmunet.' + k
+        new_state_dict[new_k] = v
+    model.load_state_dict(new_state_dict, strict=True)
+    print("  SUCCESS: Model loaded with strict=True.")
+    return model
+
 def compute_bands(fmap):
     fmap = fmap.cpu().float()
     fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
@@ -114,14 +132,11 @@ def main():
     t256 = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     t224 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
-    unet = smp.Unet(encoder_name='resnet50', encoder_weights=None, in_channels=3, classes=1).to(device)
-    unet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-unet-isic18.pth'), map_location=device)); unet.eval()
+    unet = flexible_load(smp.Unet(encoder_name='resnet50', encoder_weights=None, in_channels=3, classes=1).to(device), os.path.join(ckpt_dir, 'best-unet-isic18.pth')).eval()
     
-    args = MockArgs(); config = get_config(args); swin = SwinUnet(config, img_size=224, num_classes=1).to(device)
-    swin.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-swinunet-isic18.pth'), map_location=device)); swin.eval()
+    args = MockArgs(); config = get_config(args); swin = flexible_load(SwinUnet(config, img_size=224, num_classes=1).to(device), os.path.join(ckpt_dir, 'best-swinunet-isic18.pth')).eval()
     
-    vmunet = VMUNet().to(device)
-    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=True); vmunet.eval()
+    vmunet = flexible_load(VMUNet().to(device), os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth')).eval()
 
     features = defaultdict(dict)
     def get_hook(model_name, level):
