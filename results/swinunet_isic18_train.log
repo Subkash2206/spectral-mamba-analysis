@@ -1,0 +1,16 @@
+=> merge config from ../Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml
+SwinTransformerSys expand initial----depths:[2, 2, 2, 2];depths_decoder:[1, 2, 2, 2];drop_path_rate:0.2;num_classes:1
+---final upsample expand_first---
+pretrained_path:pretrained_weights/swin_tiny_patch4_window7_224.pth
+---start load pretrained modle of swin encoder---
+Epoch 001/100 - Train Loss: 0.2285 - Val Dice: 0.8633
+Epoch 010/100 - Train Loss: 0.0987 - Val Dice: 0.8927
+Epoch 020/100 - Train Loss: 0.0942 - Val Dice: 0.8969
+Epoch 030/100 - Train Loss: 0.0947 - Val Dice: 0.8910
+Epoch 040/100 - Train Loss: 0.0886 - Val Dice: 0.8989
+Epoch 050/100 - Train Loss: 0.0952 - Val Dice: 0.8961
+Epoch 060/100 - Train Loss: 0.0901 - Val Dice: 0.9035
+Epoch 070/100 - Train Loss: 0.0841 - Val Dice: 0.9050
+Epoch 080/100 - Train Loss: 0.0825 - Val Dice: 0.9061
+Epoch 090/100 - Train Loss: 0.0775 - Val Dice: 0.8916
+Epoch 100/100 - Train Loss: 0.0794 - Val Dice: 0.8976
