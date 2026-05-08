@@ -24,10 +24,19 @@ class MockArgs:
         self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
 
 def calculate_iou(pred, target):
-    pred = (torch.sigmoid(pred) > 0.5).float()
-    target = (torch.sigmoid(target) > 0.5).float()
-    intersection = (pred * target).sum()
-    union = pred.sum() + target.sum() - intersection
+    # Check if inputs already look like probabilities (0 to 1)
+    if pred.min() >= 0 and pred.max() <= 1:
+        p = (pred > 0.5).float()
+    else:
+        p = (torch.sigmoid(pred) > 0.5).float()
+        
+    if target.min() >= 0 and target.max() <= 1:
+        t = (target > 0.5).float()
+    else:
+        t = (torch.sigmoid(target) > 0.5).float()
+        
+    intersection = (p * t).sum()
+    union = p.sum() + t.sum() - intersection
     if union == 0:
         return 1.0
     return (intersection / union).item()
