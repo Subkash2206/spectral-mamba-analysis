@@ -42,6 +42,7 @@ class MockArgs:
 
 def compute_bands(fmap):
     fmap = fmap.cpu().float()
+    fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
     B, C, H, W = fmap.shape
     fft = torch.fft.fft2(fmap)
     fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1))
@@ -87,6 +88,7 @@ def compute_boundary_f1(pred, gt, iterations=2):
 
 def get_fft_power(fmap):
     fmap = fmap.cpu().float().mean(dim=1, keepdim=True) # average across channels
+    fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
     fft = torch.fft.fft2(fmap)
     fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1))
     power = torch.abs(fft_shifted)**2
@@ -129,7 +131,7 @@ def main():
     swin.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-swinunet-isic18.pth'), map_location=device)); swin.eval()
     
     vmunet = VMUNet().to(device)
-    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=False); vmunet.eval()
+    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=True); vmunet.eval()
 
     features = defaultdict(dict)
     def get_hook(model_name, level):
