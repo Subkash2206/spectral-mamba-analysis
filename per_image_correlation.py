@@ -12,15 +12,18 @@ from scipy.ndimage import binary_erosion
 from scipy.stats import pearsonr
 
 # Add paths for models
-sys.path.append(os.getcwd())
+ROOT = os.getcwd()
+sys.path.append(ROOT)
 from models.vmunet.vmunet import VMUNet
-sys.path.append(os.path.join(os.getcwd(), '..', 'Swin-Unet'))
+
+# Import SwinUnet
+sys.path.append(os.path.join(ROOT, 'Swin-Unet'))
 from config import get_config
 from networks.vision_transformer import SwinUnet
 
 class MockArgs:
     def __init__(self):
-        self.cfg = '../Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml'
+        self.cfg = os.path.join(ROOT, 'Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml')
         self.opts = None; self.batch_size = 1; self.zip = False; self.cache_mode = 'part'
         self.resume = None; self.accumulation_steps = None; self.use_checkpoint = False
         self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
@@ -52,7 +55,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running Per-Image Correlation on {device}...')
 
-    ckpt_dir = 'best-ckpt/'
+    ckpt_dir = os.path.join(ROOT, 'VM-UNet/best-ckpt/')
     t256 = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     t224 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
@@ -79,11 +82,12 @@ def main():
         swin.swin_unet.layers[i-1].blocks[-1].register_forward_hook(get_hook('Swin', i))
         vmunet.vmunet.layers[i-1].blocks[-1].register_forward_hook(get_hook('Mamba', i))
 
-    img_dir = 'data/isic18/train/images/'
-    mask_dir = 'data/isic18/train/masks/'
+    img_dir = os.path.join(ROOT, 'VM-UNet/data/isic18/train/images/')
+    mask_dir = os.path.join(ROOT, 'VM-UNet/data/isic18/train/masks/')
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
-    val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]
+    split_idx = int(0.8 * len(img_paths))
+    val_imgs = img_paths[split_idx:split_idx+50] # 50 images for correlation is standard
 
     results = {'UNet': {'avr': [], 'bf1': []}, 'Swin': {'avr': [], 'bf1': []}, 'Mamba': {'avr': [], 'bf1': []}}
 
@@ -161,7 +165,6 @@ def main():
     all_bf1_arr = np.array(all_bf1)
     
     # Create one-hot matrix for the 3 models (50 each)
-    # UNet: col 0, Swin: col 1, Mamba: col 2
     X = np.zeros((150, 3))
     X[0:50, 0] = 1
     X[50:100, 1] = 1

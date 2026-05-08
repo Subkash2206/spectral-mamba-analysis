@@ -12,13 +12,13 @@ import segmentation_models_pytorch as smp
 # Add paths for models
 sys.path.append(os.getcwd())
 from models.vmunet.vmunet import VMUNet
-sys.path.append(os.path.join(os.getcwd(), '..', 'Swin-Unet'))
+sys.path.append('Swin-Unet')
 from config import get_config
 from networks.vision_transformer import SwinUnet
 
 class MockArgs:
     def __init__(self):
-        self.cfg = '../Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml'
+        self.cfg = 'Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml'
         self.opts = None; self.batch_size = 1; self.zip = False; self.cache_mode = 'part'
         self.resume = None; self.accumulation_steps = None; self.use_checkpoint = False
         self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
@@ -45,7 +45,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Running Shift Consistency Audit on {device}...')
 
-    ckpt_dir = 'best-ckpt/'
+    ckpt_dir = 'VM-UNet/best-ckpt/'
     
     t256 = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     t224 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
@@ -58,12 +58,14 @@ def main():
     swin.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-swinunet-isic18.pth'), map_location=device)); swin.eval()
     
     vmunet = VMUNet().to(device)
-    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=False); vmunet.eval()
+    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=True); vmunet.eval()
 
-    img_dir = 'data/isic18/train/images/'
+    ROOT = os.getcwd()
+    img_dir = os.path.join(ROOT, 'VM-UNet/data/isic18/train/images/')
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
-    val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]
+    split_idx = int(0.8 * len(img_paths))
+    val_imgs = img_paths[split_idx:split_idx+100] # Use 100 proper validation images
     
     shifts = [1, 2, 3, 4, 5]
     results = defaultdict(lambda: defaultdict(list))
@@ -99,6 +101,10 @@ def main():
                 pred_mamba_unshifted = torch.roll(pred_mamba, shifts=-s, dims=-1)
                 
                 # Calculate IoU
+                if base_mamba.dim() == 4 and base_mamba.shape[-1] in [96, 192, 384, 768]:
+                    base_mamba = base_mamba.permute(0, 3, 1, 2)
+                    pred_mamba_unshifted = pred_mamba_unshifted.permute(0, 3, 1, 2)
+                
                 results['UNet'][s].append(calculate_iou(base_unet, pred_unet_unshifted))
                 results['Swin'][s].append(calculate_iou(base_swin, pred_swin_unshifted))
                 results['Mamba'][s].append(calculate_iou(base_mamba, pred_mamba_unshifted))

@@ -12,14 +12,54 @@ from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 try:
     from mamba_ssm.ops.selective_scan_interface import selective_scan_fn, selective_scan_ref
 except:
-    pass
+    @torch.jit.script
+    def selective_scan_loop(L: int, deltaA, deltaB_u, C, x, C_is_3d: bool, dim: int):
+        ys = []
+        for i in range(L):
+            x = deltaA[:, :, i, :] * x + deltaB_u[:, :, i, :]
+            if C_is_3d:
+                y = torch.einsum('bdn,bn->bd', x, C[:, :, i])
+            else:
+                # Grouped C (assuming K=4)
+                G = 4 
+                # We can't use repeat inside JIT easily with strings, so we use reshape/expand
+                # C is (B, G, N, L) -> C[:, :, :, i] is (B, G, N)
+                C_i = C[:, :, :, i].unsqueeze(2).expand(-1, -1, dim // G, -1).reshape(x.shape[0], dim, -1)
+                y = torch.einsum('bdn,bdn->bd', x, C_i)
+            ys.append(y)
+        return torch.stack(ys, dim=2)
 
-# an alternative for mamba_ssm (in which causal_conv1d is needed)
-try:
-    from selective_scan import selective_scan_fn as selective_scan_fn_v1
-    from selective_scan import selective_scan_ref as selective_scan_ref_v1
-except:
-    pass
+    def selective_scan_fn(u, delta, A, B, C, D=None, z=None, delta_bias=None, delta_softplus=False, return_last_state=False):
+        """Pure-PyTorch implementation of selective scan for compatibility."""
+        dtype = u.dtype
+        u = u.float()
+        delta = delta.float()
+        if delta_bias is not None:
+            delta = delta + delta_bias[..., None].float()
+        if delta_softplus:
+            delta = F.softplus(delta)
+        
+        batch, dim, dstate = u.shape[0], A.shape[0], A.shape[1]
+        L = u.shape[2]
+        
+        deltaA = torch.exp(torch.einsum('bdl,dn->bdln', delta, A))
+        
+        if B.dim() == 3:
+            B_u = torch.einsum('bnl,bdl->bdln', B, u)
+            deltaB_u = (deltaA - 1.0) * (B_u / A.unsqueeze(0).unsqueeze(2))
+        else:
+            G = B.shape[1]
+            B_expanded = B.unsqueeze(2).expand(-1, -1, dim // G, -1, -1).reshape(batch, dim, dstate, L)
+            deltaB_u = (deltaA - 1.0) * (torch.einsum('bdnl,bdl->bdln', B_expanded, u) / A.unsqueeze(0).unsqueeze(2))
+            
+        x = torch.zeros(batch, dim, dstate, device=u.device, dtype=torch.float)
+        y = selective_scan_loop(L, deltaA, deltaB_u, C, x, C.dim() == 3, dim)
+        
+        if D is not None:
+            y = y + u * D[..., None]
+        if z is not None:
+            y = y * F.silu(z)
+        return y.to(dtype)
 
 DropPath.__repr__ = lambda self: f"timm.DropPath({self.drop_prob})"
 

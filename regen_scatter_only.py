@@ -35,7 +35,9 @@ class MockArgs:
         self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
 
 def compute_avr(fmap):
-    fmap = fmap.cpu().float(); B, C, H, W = fmap.shape
+    fmap = fmap.cpu().float()
+    fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
+    B, C, H, W = fmap.shape
     fft = torch.fft.fft2(fmap); fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1)); power = torch.abs(fft_shifted) ** 2
     cy, cx = H // 2, W // 2; y = torch.arange(H).view(1, 1, H, 1); x = torch.arange(W).view(1, 1, 1, W)
     mask = (torch.abs(y - cy) > H / 4) | (torch.abs(x - cx) > W / 4); mask = mask.expand(B, C, H, W)
@@ -66,7 +68,7 @@ def main():
     swin.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-swinunet-isic18.pth'), map_location=device)); swin.eval()
     
     vmunet = VMUNet().to(device)
-    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=False); vmunet.eval()
+    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=True); vmunet.eval()
 
     features = defaultdict(dict)
     def get_hook(model_name, level):

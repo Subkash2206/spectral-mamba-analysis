@@ -29,19 +29,20 @@ BANDS = {'Low': '#4c72b0', 'Mid': '#dd8452', 'High': '#c44e52'}
 # Add paths for models
 sys.path.append(os.getcwd())
 from models.vmunet.vmunet import VMUNet
-sys.path.append(os.path.join(os.getcwd(), '..', 'Swin-Unet'))
+sys.path.append(os.path.join(os.getcwd(), 'Swin-Unet'))
 from config import get_config
 from networks.vision_transformer import SwinUnet
 
 class MockArgs:
     def __init__(self):
-        self.cfg = '../Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml'
+        self.cfg = 'Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml'
         self.opts = None; self.batch_size = 1; self.zip = False; self.cache_mode = 'part'
         self.resume = None; self.accumulation_steps = None; self.use_checkpoint = False
         self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
 
 def compute_bands(fmap):
     fmap = fmap.cpu().float()
+    fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
     B, C, H, W = fmap.shape
     fft = torch.fft.fft2(fmap)
     fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1))
@@ -87,6 +88,7 @@ def compute_boundary_f1(pred, gt, iterations=2):
 
 def get_fft_power(fmap):
     fmap = fmap.cpu().float().mean(dim=1, keepdim=True) # average across channels
+    fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
     fft = torch.fft.fft2(fmap)
     fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1))
     power = torch.abs(fft_shifted)**2
@@ -108,7 +110,7 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     # 1. Load models
-    ckpt_dir = 'best-ckpt/'
+    ckpt_dir = 'VM-UNet/best-ckpt/'
     t256 = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     t224 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
@@ -119,7 +121,7 @@ def main():
     swin.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-swinunet-isic18.pth'), map_location=device)); swin.eval()
     
     vmunet = VMUNet().to(device)
-    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=False); vmunet.eval()
+    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=True); vmunet.eval()
 
     features = defaultdict(dict)
     def get_hook(model_name, level):
@@ -133,8 +135,8 @@ def main():
         swin.swin_unet.layers[i-1].blocks[-1].register_forward_hook(get_hook('Swin', i))
         vmunet.vmunet.layers[i-1].blocks[-1].register_forward_hook(get_hook('Mamba', i))
 
-    img_dir = 'data/isic18/train/images/'
-    mask_dir = 'data/isic18/train/masks/'
+    img_dir = 'VM-UNet/data/isic18/train/images/'
+    mask_dir = 'VM-UNet/data/isic18/train/masks/'
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
     val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]

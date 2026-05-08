@@ -14,6 +14,7 @@ from models.vmunet.vmunet import VMUNet
 
 def compute_bands(fmap):
     fmap = fmap.cpu().float()
+    fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
     B, C, H, W = fmap.shape
     fft = torch.fft.fft2(fmap)
     fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1))
@@ -40,7 +41,7 @@ unet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-unet-isic18.pth')))
 unet.eval()
 
 vmunet = VMUNet().to(device)
-vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth')), strict=False)
+vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth')), strict=True)
 vmunet.eval()
 
 img_path = sorted(glob.glob('data/isic18/train/images/*.jpg'))[0]
