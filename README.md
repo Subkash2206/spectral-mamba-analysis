@@ -1,57 +1,56 @@
 # Spectral Fingerprints of Vision Architectures
 
-## TL;DR
-This study identifies a "Spectral Paradox" in State-Space Models (SSMs): while Mamba-based architectures (VM-UNet) achieve superior global segmentation accuracy (Dice), they exhibit 5x higher high-frequency aliasing in early stages compared to CNNs. This "Spectral Debt" correlates significantly with deficits in boundary precision (BF1), a relationship proven via partial correlation analysis controlling for model identity.
+## TL;DR: Unmasking Spectral Artifacts
+This study performs a rigorous spectral audit of Mamba-based architectures (VM-UNet). We discover that the previously reported "Spectral Debt" (a global correlation between aliasing and boundary precision) was largely an **evaluation artifact** caused by uncentered 2D-FFTs (DC component bias). Once mean-centered, the linear correlation between total alias volume and Boundary F1 collapses to near-zero (+0.05). However, we reveal a unique **Dual-Stage Spectral Behavior** in Mamba: it exhibits high aliasing in early encoding stages (Level 1) but transitions to aggressive low-pass filtering in deep stages (Level 4), unlike the more uniform spectral profiles of CNNs and Transformers.
 
 ![Evidence Chain](figures/band_decomposition.png)
-*1. Frequency Band Debt: Mamba (M) exhibits significantly less structural energy (Blue) at high resolution.*
+*1. Spectral Evolution: Mamba transitions from high-frequency debt at Level 1 to aggressive smoothing at Level 4.*
 
 ![Spectral Leakage](figures/power_spectrum_grid.png)
-*2. Spectral Leakage: 2D FFTs reveal high-frequency noise leakage in Mamba's early encoding stages.*
+*2. Level 1 Leakage: 2D FFTs (mean-centered) reveal Mamba's high-frequency energy accumulation in early stages.*
 
 ![Statistical Impact](figures/avr_bf1_scatter.png)
-*3. Statistical Impact: The resulting aliasing (AVR) correlates strongly with boundary precision (BF1) deficits.*
+*3. Statistical Correction: Mean-centering removes activation bias, showing that global aliasing does not predict boundary precision (r ≈ 0).*
 
 ## Abstract
-This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-UNet), and State-Space Models (VM-UNet). By analyzing the stage-wise Alias Volume Ratio (AVR) and frequency band energy distributions on the ISIC 2018 dataset, we characterize the unique "spectral fingerprints" of these models. Our results reveal that Mamba architectures accumulate a significant "Spectral Debt" in early encoder stages, where they retain substantially more high-frequency energy than their counterparts. We demonstrate that this spectral profile is intrinsically linked to boundary localization precision, establishing a mathematical framework for understanding the trade-offs between global context modeling and local edge preservation in modern vision backbones.
+This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-Tiny), and State-Space Models (VM-UNet). Following a methodological correction—enforcing mean-centered feature maps to remove DC-offset bias—we re-evaluate the "Spectral Debt" hypothesis. Our findings indicate that while Mamba architectures exhibit significantly higher aliasing in high-resolution stages (Level 1 AVR: 0.44), this does not translate to a global boundary precision deficit. Instead, Mamba demonstrates a sophisticated spectral transition, aggressively filtering high-frequencies in deep layers (Level 4 AVR: 0.14). This suggests that Mamba's edge-localization challenges are stage-specific rather than a consequence of a global spectral bottleneck.
 
 ## 1. Key Performance Metrics
 
-Models were evaluated on the ISIC 2018 skin lesion segmentation benchmark. All comparisons were standardized using identical dataset splits and evaluation protocols.
+Models were evaluated on the ISIC 2018 skin lesion segmentation benchmark using corrected weight loading (`strict=True`) and standardized protocols.
 
 | Architecture | Paradigm | Global Dice | Boundary F1 (BF1) | Mean AVR |
 | :--- | :--- | :---: | :---: | :---: |
-| **UNet (ResNet50)** | Convolutional | 0.9056 | 0.2380 | 0.2943 |
-| **Swin-UNet** | Attention | 0.9151 | **0.3453** | 0.3275 |
-| **VM-UNet (Mamba)** | Selective Scan | **0.9408** | 0.2252 | **0.2834** |
+| **UNet-ResNet50** | Convolutional | 0.9055 | 0.2661 | 0.2943 |
+| **Swin-Tiny** | Attention | 0.9146 | **0.3736** | 0.3275 |
+| **VM-UNet (Mamba)** | Selective Scan | 0.9086 | 0.3149 | **0.2834** |
 
 ## 2. Core Scientific Findings
 
-### A. The Mamba Paradox: Global Gain vs. Local Debt
-Mamba architectures (VM-UNet) exhibit a distinctive front-loaded spectral profile. At Level 1 (64x64 resolution), Mamba allocates only **32.5%** of its energy to the low-frequency structural band, compared to **37.8%** for CNNs and **51.8%** for Transformers (after mean-centering to remove DC component bias).
+### A. Dual-Stage Spectral Dynamics
+By mean-centering feature maps before computing the 2D-FFT, we isolate genuine high-frequency content from activation magnitude biases. This reveal's Mamba's "Spectral Debt" is concentrated in early stages.
 
-> [!NOTE]
-> All spectral measurements use mean-centered feature maps prior to FFT computation, removing DC-offset bias and measuring genuine high-frequency content relative to structural variation.
+> [!IMPORTANT]
+> **Methodological Fix**: All results below use mean-centered FFTs. Previous findings claiming a strong negative correlation between AVR and BF1 were biased by the DC component (activation magnitude), not spectral aliasing itself.
 
 #### Stage-wise Alias Volume Ratio (AVR, mean-centered)
 | Resolution Level | UNet AVR | Swin-UNet AVR | VM-UNet AVR |
 | :--- | :---: | :---: | :---: |
 | **Level 1 (~64x64)** | 0.3419 | 0.3291 | **0.4391** |
 | **Level 2 (~32x32)** | 0.3587 | 0.3671 | **0.4012** |
-| **Level 3 (~16x16)** | **0.2960** | 0.2493 | 0.1563 |
-| **Level 4 (~8x8)**   | 0.1804 | **0.3646** | 0.1370 |
+| **Level 3 (~16x16)** | 0.2960 | 0.2493 | **0.1563** |
+| **Level 4 (~8x8)**   | 0.1804 | **0.3646** | **0.1370** |
 
-#### Frequency Band Decomposition, Level 1 (mean-centered)
-| Architecture | Low Band (<0.25 Ny) | Mid Band (0.25-0.75 Ny) | High Band (>0.75 Ny) |
+#### Frequency Band Decomposition, Mamba (mean-centered)
+| Stage | Low Band (<0.25 Ny) | Mid Band (0.25-0.75 Ny) | High Band (>0.75 Ny) |
 | :--- | :---: | :---: | :---: |
-| **UNet (CNN)** | 37.84% | 49.19% | 12.97% |
-| **Swin-UNet** | **51.80%** | 30.89% | 17.31% |
-| **VM-UNet (Mamba)** | 32.54% | **45.67%** | **21.79%** |
+| **Level 1 (Early)** | 32.54% | 45.67% | 21.79% |
+| **Level 4 (Deep)** | **64.78%** | 31.51% | **3.71%** |
 
-After mean-centering, Mamba retains the most high-frequency energy at Level 1 (21.8% vs 13.0% for CNN and 17.3% for Transformer). Notably, Mamba's spectral profile flattens sharply at Levels 3–4, consistent with bottleneck low-pass filtering in the selective scan mechanism.
+Mamba starts with high spectral leakage (21.8% high-band energy) but ends as the most aggressive low-pass filter among all tested architectures (only 3.7% high-band energy at the bottleneck).
 
-### B. Statistical Validation of Spectral Debt
-To prove the causal link between aliasing and edge precision, we performed a per-image correlation analysis (n=150) across all images and architectures.
+### B. Statistical Correction: The Correlation Collapse
+To test the causal link between aliasing and edge precision, we performed a per-image correlation analysis (n=150).
 
 #### Correlation Results — Mean AVR vs. BF1 (mean-centered FFT)
 | Population | Pearson *r* | *p*-value | Significant? |
@@ -59,16 +58,16 @@ To prove the causal link between aliasing and edge precision, we performed a per
 | **UNet (CNN)** | -0.2003 | 0.1632 | No |
 | **Swin-UNet** | -0.1303 | 0.3671 | No |
 | **VM-UNet (Mamba)** | +0.3219 | 0.0226 | Yes |
-| **Pooled (n=150)** | +0.0541 | 0.5108 | No |
-| **Partial (Controlled)**| +0.0004 | 0.9965 | No |
+| **Pooled (n=150)** | **+0.0541** | 0.5108 | **No** |
+| **Partial (Controlled)**| **+0.0004** | 0.9965 | **No** |
 
-After removing DC-component bias via mean-centering, the pooled AVR–BF1 correlation is non-significant. The spectral differences between architectures exist but are not predictive of boundary quality once activation-level biases are removed.
+Once DC-bias is removed, the pooled correlation collapses. The "Spectral Debt" hypothesis as a global predictor of boundary failure is **refuted**. Spectral aliasing is an architectural trait, but not the primary driver of boundary precision across different paradigms.
 
-### C. Architectural Sensitivity and "The Non-Finding"
-We identified that the AVR–BF1 correlation is architecture-dependent and non-significant in the pooled analysis after DC-bias removal. UNet remains spectrally stable (p=0.16), Swin's correlation is also non-significant (p=0.37), and Mamba shows a positive correlation (r=+0.32, p=0.02) — meaning images where Mamba has higher spectral energy also achieve better boundary scores within that model, possibly because richer high-frequency encoding aids fine-grained detection in less ambiguous cases.
+### C. Internal Mamba Sensitivity
+Interestingly, while the global correlation is zero, Mamba internally shows a **positive** correlation (+0.32, p=0.02). This suggests that within the Mamba architecture, images that retain higher spectral energy (less aliasing/smoothing) actually achieve *better* boundary scores, potentially because the model benefits from richer high-frequency cues when it manages to preserve them.
 
-### D. Shift Consistency and Bottleneck Filtering
-Despite its high early-stage AVR, Mamba maintains superior shift consistency compared to Swin-UNet. 
+### D. Shift Consistency
+Mamba maintains competitive shift consistency despite its high Level 1 AVR, outperforming Swin-UNet at higher shift magnitudes.
 
 #### Translation Equivariance Results (Mean IoU)
 | Architecture | 1px Shift | 3px Shift | 5px Shift |
@@ -77,28 +76,21 @@ Despite its high early-stage AVR, Mamba maintains superior shift consistency com
 | **VM-UNet (Mamba)** | 0.9755 | 0.9551 | 0.9532 |
 | **Swin-UNet** | 0.9670 | 0.9484 | 0.9196 |
 
-This is explained by Mamba's resolution-dependent filtering: while AVR is extremely high in early stages, it drops significantly at the bottleneck (Level 4 AVR: 0.04), whereas Swin-UNet collapses due to rigid window boundary artifacts.
-
 ## 3. Visualization Gallery
 
 ### Frequency Band Decomposition
-Detailed energy distribution (Low/Mid/High) across architectures and stages.
 ![Band Decomposition](figures/band_decomposition.png)
 
 ### Power Spectrum Heatmaps
-Visualizing high-frequency leakage in Mamba encoding layers (Averaged across channels).
 ![Power Spectrum Grid](figures/power_spectrum_grid.png)
 
 ### Spectral Aliasing vs. Boundary Precision
-Scatter plots of AVR vs. BF1 per image across architectures. After mean-centering, the pooled correlation is non-significant (r = +0.05).
 ![AVR vs BF1 Scatter](figures/avr_bf1_scatter.png)
 
 ### Translation Equivariance Curves
-Robustness to spatial shifts (1-5 pixels) across architectural paradigms.
 ![Shift Consistency Curves](figures/shift_consistency_curves.png)
 
 ### Stage-wise AVR Distribution
-Quantifying the "Spectral Debt" accumulation by resolution level.
 ![Stagewise AVR Bars](figures/stagewise_avr_bars.png)
 
 ## 4. Reproducibility
@@ -109,15 +101,7 @@ Quantifying the "Spectral Debt" accumulation by resolution level.
 - `results/`: Consolidated CSV datasets for AVR, BF1, and correlations.
 
 ### Analysis Pipeline
-Run the following scripts in order to replicate the study findings:
-1. `avr_stagewise_all.py`: Unified stage-wise spectral audit across all architectures.
-2. `per_image_correlation.py`: Statistical analysis including pooled and partial correlations.
+1. `avr_stagewise_all.py`: Unified stage-wise spectral audit.
+2. `per_image_correlation.py`: Statistical analysis of AVR vs BF1.
 3. `shift_consistency.py`: Translation equivariance testing.
-4. `visualizations.py`: Generation of all publication-quality figures and CSV summaries.
-
-### Hardware & Environment
-- **Environment**: WSL2 (Ubuntu 22.04)
-- **Environment Name**: `vmunet` (Conda)
-- **GPU**: NVIDIA GPU with CUDA 11.8+ support
-- **Key Dependencies**: `torch`, `torchvision`, `mamba_ssm`, `segmentation_models_pytorch`, `scipy`, `matplotlib`.
-- **Drivers**: Requires `LD_LIBRARY_PATH=/usr/lib/wsl/lib` configuration in WSL2 for native CUDA kernel execution.
+4. `visualizations.py`: Generation of all figures.
