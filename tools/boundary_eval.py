@@ -11,31 +11,19 @@ import segmentation_models_pytorch as smp
 import timm
 from scipy.ndimage import binary_erosion
 
-# Add current directory to path
-sys.path.append(os.getcwd())
+# Add paths for VM-UNet and Swin-UNet
+sys.path.append(os.path.join(os.getcwd(), 'VM-UNet'))
 from models.vmunet.vmunet import VMUNet
+sys.path.append(os.path.join(os.getcwd(), 'Swin-Unet'))
+from config import get_config
+from networks.vision_transformer import SwinUnet
 
-class SwinSeg(nn.Module):
+class MockArgs:
     def __init__(self):
-        super().__init__()
-        self.encoder = timm.create_model('swin_tiny_patch4_window7_224', pretrained=True, features_only=True)
-        self.head = nn.Conv2d(768, 1, 1)
-        
-    def forward(self, x):
-        features = self.encoder(x)
-        out = features[-1]
-        
-        # Format out to (B, C, H, W)
-        if out.dim() == 3:
-            B, L, C = out.shape
-            H_f = W_f = int(math.sqrt(L))
-            out = out.view(B, H_f, W_f, C).permute(0, 3, 1, 2)
-        elif out.dim() == 4 and out.shape[-1] in [96, 192, 384, 768]:
-            out = out.permute(0, 3, 1, 2)
-            
-        out = self.head(out)
-        out = torch.nn.functional.interpolate(out, size=(224, 224), mode='bilinear', align_corners=False)
-        return out
+        self.cfg = 'Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml'
+        self.opts = None; self.batch_size = 1; self.zip = False; self.cache_mode = 'part'
+        self.resume = None; self.accumulation_steps = None; self.use_checkpoint = False
+        self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
 
 def compute_dice(pred, gt):
     pred = pred.astype(bool)
@@ -76,23 +64,21 @@ def main():
     # 1. Load VM-UNet
     print('Loading VM-UNet...')
     vmunet = VMUNet().to(device)
-    ckpt = torch.load('best-ckpt/best-vmunet-isic18.pth', map_location=device)
-    if isinstance(ckpt, dict) and 'model_state_dict' in ckpt:
-        vmunet.load_state_dict(ckpt['model_state_dict'], strict=False)
-    elif isinstance(ckpt, dict) and 'state_dict' in ckpt:
-        vmunet.load_state_dict(ckpt['state_dict'], strict=False)
-    else:
-        vmunet.load_state_dict(ckpt, strict=False)
+    vmunet.load_state_dict(torch.load('best-ckpt/best-vmunet-scratch-isic18.pth', map_location=device), strict=True)
     vmunet.eval()
 
     # 2. Load UNet-ResNet50
     print('Loading UNet-ResNet50...')
-    unet = smp.Unet(encoder_name='resnet50', encoder_weights='imagenet', in_channels=3, classes=1).to(device)
+    unet = smp.Unet(encoder_name='resnet50', encoder_weights=None, in_channels=3, classes=1).to(device)
+    unet.load_state_dict(torch.load('best-ckpt/best-unet-isic18.pth', map_location=device))
     unet.eval()
 
     # 3. Load Swin-Tiny
     print('Loading Swin-Tiny...')
-    swin = SwinSeg().to(device)
+    args = MockArgs()
+    config = get_config(args)
+    swin = SwinUnet(config, img_size=224, num_classes=1).to(device)
+    swin.load_state_dict(torch.load('best-ckpt/best-swinunet-isic18.pth', map_location=device))
     swin.eval()
 
     models = {

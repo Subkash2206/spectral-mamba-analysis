@@ -33,28 +33,13 @@ class MockArgs:
         self.throughput = False
 
 def compute_avr(fmap):
-    """Compute Alias Volume Ratio (AVR) for a feature map (B, C, H, W)"""
-    fmap = fmap.cpu().float() # Move to CPU to avoid VRAM pressure and cuFFT errors
+    fmap = fmap.cpu().float()
+    fmap = fmap - fmap.mean(dim=(-2, -1), keepdim=True)
     B, C, H, W = fmap.shape
-    # Compute 2D FFT
-    fft = torch.fft.fft2(fmap)
-    fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1))
-    
-    # Compute power spectrum
-    power = torch.abs(fft_shifted) ** 2
-    
-    # Define Nyquist mask (> H/4 and > W/4 from center)
-    cy, cx = H // 2, W // 2
-    y = torch.arange(H, device=fmap.device).view(1, 1, H, 1)
-    x = torch.arange(W, device=fmap.device).view(1, 1, 1, W)
-    
-    mask = (torch.abs(y - cy) > H / 4) | (torch.abs(x - cx) > W / 4)
-    mask = mask.expand(B, C, H, W)
-    
-    high_freq_energy = (power * mask).sum()
-    total_energy = power.sum()
-    
-    return (high_freq_energy / total_energy).item() if total_energy > 0 else 0.0
+    fft = torch.fft.fft2(fmap); fft_shifted = torch.fft.fftshift(fft, dim=(-2, -1)); power = torch.abs(fft_shifted) ** 2
+    cy, cx = H // 2, W // 2; y = torch.arange(H).view(1, 1, H, 1); x = torch.arange(W).view(1, 1, 1, W)
+    mask = (torch.abs(y - cy) > H / 4) | (torch.abs(x - cx) > W / 4); mask = mask.expand(B, C, H, W)
+    return (power * mask).sum().item() / power.sum().item() if power.sum() > 0 else 0.0
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -77,7 +62,7 @@ def main():
     
     # VM-UNet (Mamba)
     vmunet = VMUNet().to(device)
-    vmunet.load_state_dict(torch.load('best-ckpt/best-vmunet-scratch-isic18.pth', map_location=device), strict=False)
+    vmunet.load_state_dict(torch.load('best-ckpt/best-vmunet-scratch-isic18.pth', map_location=device), strict=True)
     vmunet.eval()
 
     # 2. Setup Hooks
@@ -132,20 +117,22 @@ def main():
             audit_results['unet_s4'].append(compute_avr(features['unet_s4']))
             
             _ = swin(i224)
-            # Swin outputs are often (B, H*W, C), need to reshape for FFT
+            # Swin outputs can be (B, L, C) or (B, H, W, C)
             for s in range(1, 5):
-                f = features[f'swin_s{s}'] 
-                B, L, C = f.shape
-                H = W = int(np.sqrt(L))
-                f = f.transpose(1, 2).reshape(B, C, H, W)
+                f = features[f'swin_s{s}']
+                if f.dim() == 3:
+                    B, L, C = f.shape; H = W = int(np.sqrt(L)); f = f.transpose(1, 2).reshape(B, C, H, W)
+                elif f.dim() == 4 and f.shape[-1] in [96, 192, 384, 768]:
+                    f = f.permute(0, 3, 1, 2)
                 audit_results[f'swin_s{s}'].append(compute_avr(f))
                 
             _ = vmunet(i256)
-            # Mamba outputs (B, C, H, W)
-            audit_results['mamba_s1'].append(compute_avr(features['mamba_s1']))
-            audit_results['mamba_s2'].append(compute_avr(features['mamba_s2']))
-            audit_results['mamba_s3'].append(compute_avr(features['mamba_s3']))
-            audit_results['mamba_s4'].append(compute_avr(features['mamba_s4']))
+            # Mamba outputs (B, C, H, W) or (B, H, W, C)
+            for s in range(1, 5):
+                f = features[f'mamba_s{s}']
+                if f.dim() == 4 and f.shape[-1] in [96, 192, 384, 768]:
+                    f = f.permute(0, 3, 1, 2)
+                audit_results[f'mamba_s{s}'].append(compute_avr(f))
 
     # 4. Report
     print('\n' + '='*80)
