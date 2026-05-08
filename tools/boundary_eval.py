@@ -146,7 +146,12 @@ def main():
                 out = model(x)
                 if isinstance(out, tuple):
                     out = out[0]
-                pred = torch.sigmoid(out).squeeze().cpu().numpy()
+                
+                # VM-UNet already applies sigmoid internally
+                if m_name == 'VM-UNet':
+                    pred = out.squeeze().cpu().numpy()
+                else:
+                    pred = torch.sigmoid(out).squeeze().cpu().numpy()
             
             pred_bin = pred > 0.5
             

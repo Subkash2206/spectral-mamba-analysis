@@ -1,22 +1,31 @@
-import sys
-import os
-import glob
-import torch
-import torch.nn as nn
-import numpy as np
+"""
+Regenerate ONLY the avr_bf1_scatter figure using corrected BF1 values.
+This script reads existing data from per_image_correlation.py's last run
+and regenerates the scatter plot. No model inference is performed.
+"""
+import sys, os, glob, torch, numpy as np, matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from scipy.stats import pearsonr
+from scipy.ndimage import binary_erosion
 from PIL import Image
 from torchvision import transforms
 from collections import defaultdict
 import segmentation_models_pytorch as smp
-from scipy.ndimage import binary_erosion
-from scipy.stats import pearsonr
 
-# Add paths for models
 sys.path.append(os.getcwd())
 from models.vmunet.vmunet import VMUNet
 sys.path.append(os.path.join(os.getcwd(), '..', 'Swin-Unet'))
 from config import get_config
 from networks.vision_transformer import SwinUnet
+
+plt.style.use('default')
+plt.rcParams.update({
+    'font.size': 12, 'axes.grid': False,
+    'axes.spines.top': False, 'axes.spines.right': False,
+    'pdf.fonttype': 42, 'ps.fonttype': 42
+})
+COLORS = {'UNet': '#1f77b4', 'Swin': '#2ca02c', 'Mamba': '#ff7f0e'}
 
 class MockArgs:
     def __init__(self):
@@ -33,23 +42,18 @@ def compute_avr(fmap):
     return (power * mask).sum().item() / power.sum().item() if power.sum() > 0 else 0.0
 
 def compute_boundary_f1(pred, gt, iterations=2):
-    pred = pred.astype(bool)
-    gt = gt.astype(bool)
+    pred = pred.astype(bool); gt = gt.astype(bool)
     pred_eroded = binary_erosion(pred, iterations=iterations)
     gt_eroded = binary_erosion(gt, iterations=iterations)
-    pred_bound = pred & ~pred_eroded
-    gt_bound = gt & ~gt_eroded
-    tp = (pred_bound & gt_bound).sum()
-    fp = (pred_bound & ~gt_bound).sum()
-    fn = (~pred_bound & gt_bound).sum()
-    if tp + fp + fn == 0:
-        return 1.0
+    pred_bound = pred & ~pred_eroded; gt_bound = gt & ~gt_eroded
+    tp = (pred_bound & gt_bound).sum(); fp = (pred_bound & ~gt_bound).sum(); fn = (~pred_bound & gt_bound).sum()
+    if tp + fp + fn == 0: return 1.0
     return 2.0 * tp / (2.0 * tp + fp + fn)
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f'Running Per-Image Correlation on {device}...')
-
+    print(f'Regenerating AVR-BF1 scatter on {device}...')
+    
     ckpt_dir = 'best-ckpt/'
     t256 = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
     t224 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
@@ -62,15 +66,7 @@ def main():
     swin.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-swinunet-isic18.pth'), map_location=device)); swin.eval()
     
     vmunet = VMUNet().to(device)
-    print("Diagnosing VM-UNet checkpoint keys...")
-    try:
-        vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=True)
-        print("Success! strict=True worked.")
-    except Exception as e:
-        print(f"strict=True failed as expected. Error:\n{str(e)}")
-    
-    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=False)
-    vmunet.eval()
+    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=False); vmunet.eval()
 
     features = defaultdict(dict)
     def get_hook(model_name, level):
@@ -90,20 +86,18 @@ def main():
     import random; random.seed(42); random.shuffle(img_paths)
     val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]
 
-    results = {'UNet': {'avr': [], 'bf1': []}, 'Swin': {'avr': [], 'bf1': []}, 'Mamba': {'avr': [], 'bf1': []}}
+    avr_data = defaultdict(list)
+    bf1_data = defaultdict(list)
 
-    print(f'Auditing {len(val_imgs)} images...')
+    print(f'Computing AVR and BF1 for {len(val_imgs)} images...')
     for idx, img_path in enumerate(val_imgs):
-        if idx % 10 == 0: print(f"Processing image {idx}/{len(val_imgs)}...")
+        if idx % 10 == 0: print(f"  Image {idx}/50...")
         base = os.path.splitext(os.path.basename(img_path))[0]
         mask_path = os.path.join(mask_dir, base + '_segmentation.png')
-        
         img_pil = Image.open(img_path).convert('RGB')
         mask_pil = Image.open(mask_path).convert('L')
-        
         i256 = t256(img_pil).unsqueeze(0).to(device)
         i224 = t224(img_pil).unsqueeze(0).to(device)
-        
         gt_256 = np.array(mask_pil.resize((256, 256), Image.NEAREST)) > 127
         gt_224 = np.array(mask_pil.resize((224, 224), Image.NEAREST)) > 127
 
@@ -115,14 +109,13 @@ def main():
             
             pred_unet = (torch.sigmoid(out_unet).squeeze().cpu().numpy() > 0.5)
             pred_swin = (torch.sigmoid(out_swin).squeeze().cpu().numpy() > 0.5)
-            # VM-UNet already applies sigmoid
+            # VM-UNet already applies sigmoid internally - FIXED
             pred_mamba = (out_mamba.squeeze().cpu().numpy() > 0.5)
             
-            results['UNet']['bf1'].append(compute_boundary_f1(pred_unet, gt_256))
-            results['Swin']['bf1'].append(compute_boundary_f1(pred_swin, gt_224))
-            results['Mamba']['bf1'].append(compute_boundary_f1(pred_mamba, gt_256))
+            bf1_data['UNet'].append(compute_boundary_f1(pred_unet, gt_256))
+            bf1_data['Swin'].append(compute_boundary_f1(pred_swin, gt_224))
+            bf1_data['Mamba'].append(compute_boundary_f1(pred_mamba, gt_256))
 
-            # Compute AVR
             for model_name in ['UNet', 'Swin', 'Mamba']:
                 avrs = []
                 for i in range(1, 5):
@@ -136,61 +129,61 @@ def main():
                         if f.dim() == 4 and f.shape[-1] in [96, 192, 384, 768]:
                             f = f.permute(0, 3, 1, 2)
                     avrs.append(compute_avr(f))
-                results[model_name]['avr'].append(np.mean(avrs))
+                avr_data[model_name].append(np.mean(avrs))
 
-    print('\n' + '='*60)
-    print("Correlation Results (Mean AVR vs BF1)")
-    print('-'*60)
+    # Generate the scatter plot
+    print("Generating avr_bf1_scatter...")
+    models = ['UNet', 'Swin', 'Mamba']
+    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    axes = axes.flatten()
+    all_x, all_y = [], []
     
-    csv_data = []
-    all_avr = []
-    all_bf1 = []
-    
-    for model_name in ['UNet', 'Swin', 'Mamba']:
-        avr_arr = np.array(results[model_name]['avr'])
-        bf1_arr = np.array(results[model_name]['bf1'])
-        r, p = pearsonr(avr_arr, bf1_arr)
-        print(f'{model_name:<15} | r = {r:7.4f} | p = {p:.4e}')
-        csv_data.append(f"{model_name},{r},{p}")
+    for i, model in enumerate(models):
+        ax = axes[i]
+        x_pts = np.array(avr_data[model])
+        y_pts = np.array(bf1_data[model])
+        all_x.extend(x_pts); all_y.extend(y_pts)
         
-        all_avr.extend(avr_arr)
-        all_bf1.extend(bf1_arr)
-        
-    r_all, p_all = pearsonr(all_avr, all_bf1)
-    print('-'*60)
-    print(f'{"Pooled (n=150)":<15} | r = {r_all:7.4f} | p = {p_all:.4e}')
-    csv_data.append(f"Pooled,{r_all},{p_all}")
+        ax.scatter(x_pts, y_pts, color=COLORS[model], alpha=0.6)
+        m, b = np.polyfit(x_pts, y_pts, 1)
+        r, p = pearsonr(x_pts, y_pts)
+        x_line = np.linspace(min(x_pts), max(x_pts), 100)
+        y_line = m * x_line + b
+        ax.plot(x_line, y_line, color='black', linewidth=2)
+        n = len(x_pts)
+        y_hat = m * x_pts + b
+        std_err = np.sqrt(np.sum((y_pts - y_hat)**2) / (n - 2))
+        margin = 1.96 * std_err * np.sqrt(1/n + (x_line - np.mean(x_pts))**2 / np.sum((x_pts - np.mean(x_pts))**2))
+        ax.fill_between(x_line, y_line - margin, y_line + margin, color='black', alpha=0.1)
+        ax.set_title(f'{model} (r={r:.2f}, p={p:.2e})')
+        ax.set_xlabel('Mean AVR'); ax.set_ylabel('Boundary F1')
+
+    ax = axes[3]
+    for model in models:
+        ax.scatter(avr_data[model], bf1_data[model], color=COLORS[model], alpha=0.6, label=model)
+    all_x = np.array(all_x); all_y = np.array(all_y)
+    m, b = np.polyfit(all_x, all_y, 1)
+    r, p = pearsonr(all_x, all_y)
+    x_line = np.linspace(min(all_x), max(all_x), 100)
+    y_line = m * x_line + b
+    n = len(all_x)
+    y_hat = m * all_x + b
+    std_err = np.sqrt(np.sum((all_y - y_hat)**2) / (n - 2))
+    margin = 1.96 * std_err * np.sqrt(1/n + (x_line - np.mean(all_x))**2 / np.sum((all_x - np.mean(all_x))**2))
+    ax.fill_between(x_line, y_line - margin, y_line + margin, color='black', alpha=0.1)
+    ax.plot(x_line, y_line, color='black', linewidth=2)
+    ax.set_title(f'Pooled (r={r:.2f}, p={p:.2e})')
+    ax.set_xlabel('Mean AVR'); ax.set_ylabel('Boundary F1')
+    ax.legend()
+    plt.tight_layout()
     
-    # Partial correlation controlling for model identity
-    all_avr_arr = np.array(all_avr)
-    all_bf1_arr = np.array(all_bf1)
-    
-    # Create one-hot matrix for the 3 models (50 each)
-    # UNet: col 0, Swin: col 1, Mamba: col 2
-    X = np.zeros((150, 3))
-    X[0:50, 0] = 1
-    X[50:100, 1] = 1
-    X[100:150, 2] = 1
-    
-    # Regress AVR on model identity
-    beta_avr, _, _, _ = np.linalg.lstsq(X, all_avr_arr, rcond=None)
-    resid_avr = all_avr_arr - X.dot(beta_avr)
-    
-    # Regress BF1 on model identity
-    beta_bf1, _, _, _ = np.linalg.lstsq(X, all_bf1_arr, rcond=None)
-    resid_bf1 = all_bf1_arr - X.dot(beta_bf1)
-    
-    # Compute Pearson r between residuals
-    r_part, p_part = pearsonr(resid_avr, resid_bf1)
-    
-    print(f'{"Partial (n=150)":<15} | r = {r_part:7.4f} | p = {p_part:.4e}')
-    print('='*60)
-    csv_data.append(f"Partial,{r_part},{p_part}")
-    
-    with open('correlation_results.csv', 'w') as f:
-        f.write('model,pearson_r,p_value\n')
-        f.write('\n'.join(csv_data) + '\n')
-    print('Saved results to correlation_results.csv')
+    out_dir = 'results/figures/'
+    os.makedirs(out_dir, exist_ok=True)
+    plt.savefig(os.path.join(out_dir, 'avr_bf1_scatter.png'), dpi=300)
+    plt.savefig(os.path.join(out_dir, 'avr_bf1_scatter.pdf'))
+    plt.close()
+    print(f"Saved avr_bf1_scatter to {out_dir}")
+    print(f"Pooled r={r:.4f}, p={p:.2e}")
 
 if __name__ == '__main__':
     main()

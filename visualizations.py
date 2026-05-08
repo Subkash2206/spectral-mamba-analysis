@@ -93,11 +93,21 @@ def get_fft_power(fmap):
     return power.squeeze().numpy()
 
 def calculate_iou(pred, target):
-    pred = (torch.sigmoid(pred) > 0.5).float()
-    target = (torch.sigmoid(target) > 0.5).float()
-    intersection = (pred * target).sum()
-    union = pred.sum() + target.sum() - intersection
-    if union == 0: return 1.0
+    # Check if inputs already look like probabilities (0 to 1)
+    if pred.min() >= 0 and pred.max() <= 1:
+        p = (pred > 0.5).float()
+    else:
+        p = (torch.sigmoid(pred) > 0.5).float()
+        
+    if target.min() >= 0 and target.max() <= 1:
+        t = (target > 0.5).float()
+    else:
+        t = (torch.sigmoid(target) > 0.5).float()
+        
+    intersection = (p * t).sum()
+    union = p.sum() + t.sum() - intersection
+    if union == 0:
+        return 1.0
     return (intersection / union).item()
 
 def main():
@@ -168,7 +178,8 @@ def main():
             # BF1
             bf1_data['UNet'].append(compute_boundary_f1((torch.sigmoid(base_unet).squeeze().cpu().numpy() > 0.5), gt_256))
             bf1_data['Swin'].append(compute_boundary_f1((torch.sigmoid(base_swin).squeeze().cpu().numpy() > 0.5), gt_224))
-            bf1_data['Mamba'].append(compute_boundary_f1((torch.sigmoid(base_mamba).squeeze().cpu().numpy() > 0.5), gt_256))
+            # VM-UNet already applies sigmoid
+            bf1_data['Mamba'].append(compute_boundary_f1((base_mamba.squeeze().cpu().numpy() > 0.5), gt_256))
 
             # Spectra
             for model_name in ['UNet', 'Swin', 'Mamba']:
