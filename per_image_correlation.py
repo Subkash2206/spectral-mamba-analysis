@@ -29,18 +29,24 @@ class MockArgs:
         self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
 
 def flexible_load(model, ckpt_path):
+    print(f"Loading weights from {ckpt_path}...")
     state_dict = torch.load(ckpt_path, map_location='cpu')
     if 'model' in state_dict: state_dict = state_dict['model']
     model_dict = model.state_dict()
     has_vmunet_prefix = any(k.startswith('vmunet.') for k in state_dict.keys())
     model_has_vmunet_prefix = any(k.startswith('vmunet.') for k in model_dict.keys())
+    
+    # Filter metadata and enforce strict loading
+    clean_state_dict = {k: v for k, v in state_dict.items() if not k.endswith('total_ops') and not k.endswith('total_params')}
     new_state_dict = {}
-    for k, v in state_dict.items():
+    for k, v in clean_state_dict.items():
         new_k = k
         if has_vmunet_prefix and not model_has_vmunet_prefix: new_k = k.replace('vmunet.', '')
         elif not has_vmunet_prefix and model_has_vmunet_prefix: new_k = 'vmunet.' + k
         new_state_dict[new_k] = v
-    model.load_state_dict(new_state_dict, strict=False)
+        
+    model.load_state_dict(new_state_dict, strict=True)
+    print("  SUCCESS: Model loaded with strict=True.")
     return model
 
 def compute_avr(fmap):
