@@ -9,8 +9,6 @@ from torchvision import transforms
 from collections import defaultdict
 import segmentation_models_pytorch as smp
 
-ROOT = os.getcwd()
-
 sys.path.append(os.path.join(os.getcwd(), 'VM-UNet'))
 from models.vmunet.vmunet import VMUNet
 sys.path.append(os.path.join(os.getcwd(), 'Swin-Unet'))
@@ -19,23 +17,8 @@ from networks.vision_transformer import SwinUnet
 
 class MockArgs:
     def __init__(self):
-        self.cfg = os.path.join(ROOT, 'Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml')
+        self.cfg = 'Swin-Unet/configs/swin_tiny_patch4_window7_224_lite.yaml'
         self.opts = None; self.batch_size = 1; self.zip = False; self.cache_mode = 'part'; self.resume = None; self.accumulation_steps = None; self.use_checkpoint = False; self.amp_opt_level = 'O0'; self.tag = 'test'; self.eval = False; self.throughput = False
-
-def flexible_load(model, ckpt_path):
-    state_dict = torch.load(ckpt_path, map_location='cpu')
-    if 'model' in state_dict: state_dict = state_dict['model']
-    model_dict = model.state_dict()
-    has_vmunet_prefix = any(k.startswith('vmunet.') for k in state_dict.keys())
-    model_has_vmunet_prefix = any(k.startswith('vmunet.') for k in model_dict.keys())
-    new_state_dict = {}
-    for k, v in state_dict.items():
-        new_k = k
-        if has_vmunet_prefix and not model_has_vmunet_prefix: new_k = k.replace('vmunet.', '')
-        elif not has_vmunet_prefix and model_has_vmunet_prefix: new_k = 'vmunet.' + k
-        new_state_dict[new_k] = v
-    model.load_state_dict(new_state_dict, strict=False)
-    return model
 
 def compute_avr(fmap):
     fmap = fmap.cpu().float()
@@ -55,13 +38,13 @@ def main():
     t224 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
     unet = smp.Unet(encoder_name='resnet50', encoder_weights=None, in_channels=3, classes=1).to(device)
-    unet = flexible_load(unet, os.path.join(ckpt_dir, 'best-unet-isic18.pth')).eval()
+    unet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-unet-isic18.pth'), map_location=device)); unet.eval()
     
     args = MockArgs(); config = get_config(args); swin = SwinUnet(config, img_size=224, num_classes=1).to(device)
-    swin = flexible_load(swin, os.path.join(ckpt_dir, 'best-swinunet-isic18.pth')).eval()
+    swin.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-swinunet-isic18.pth'), map_location=device)); swin.eval()
     
     vmunet = VMUNet().to(device)
-    vmunet = flexible_load(vmunet, os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth')).eval()
+    vmunet.load_state_dict(torch.load(os.path.join(ckpt_dir, 'best-vmunet-scratch-isic18.pth'), map_location=device), strict=True); vmunet.eval()
 
     features = {}
     def get_hook(name):
@@ -83,10 +66,11 @@ def main():
     img_dir = 'VM-UNet/data/isic18/train/images/'
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
-    val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+100] # Robust 100 image sample
+    split_idx = int(0.8 * len(img_paths))
+    val_imgs = img_paths[split_idx:split_idx+100] # Use 100 proper validation images
     
     audit_results = defaultdict(list); stage_info = {}
-    print(f'Auditing {len(val_imgs)} images...')
+    print(f'Auditing {len(val_imgs)} VALIDATION images...')
     for path in val_imgs:
         img = Image.open(path).convert('RGB'); i256 = t256(img).unsqueeze(0).to(device); i224 = t224(img).unsqueeze(0).to(device)
         with torch.no_grad():
