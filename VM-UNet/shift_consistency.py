@@ -119,10 +119,12 @@ def main():
             
     print('='*60)
     
-    with open('shift_consistency_results.csv', 'w') as f:
-        f.write('model,shift,mean_iou\n')
-        f.write('\n'.join(final_data) + '\n')
-    print('Saved results to shift_consistency_results.csv')
+    out_path = 'results/shift_consistency_results.csv'
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, 'w') as f:
+        f.write('model,shift,mean_iou\r\n')
+        f.write('\r\n'.join(final_data) + '\r\n')
+    print(f'Saved results to {out_path}')
 
 if __name__ == '__main__':
     main()

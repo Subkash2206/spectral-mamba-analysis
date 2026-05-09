@@ -13,7 +13,7 @@ This study performs a rigorous spectral audit of Mamba-based architectures (VM-U
 *3. Statistical Correction: Mean-centering removes activation bias, showing that global aliasing does not predict boundary precision (r ≈ 0).*
 
 ## Abstract
-This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-Tiny), and State-Space Models (VM-UNet). Following a methodological correction—enforcing mean-centered feature maps to remove DC-offset bias—we re-evaluate the "Spectral Debt" hypothesis. Our findings indicate that while Mamba architectures exhibit significantly higher aliasing in high-resolution stages (Level 1 AVR: 0.46), this does not translate to a global boundary precision deficit. Instead, Mamba demonstrates a sophisticated spectral transition, aggressively filtering high-frequencies in deep layers (Level 4 AVR: 0.13). This suggests that Mamba's edge-localization challenges are stage-specific rather than a consequence of a global spectral bottleneck.
+This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-Tiny), and State-Space Models (VM-UNet). Following a methodological correction—enforcing mean-centered feature maps to remove DC-offset bias—we re-evaluate the "Spectral Debt" hypothesis. Our key finding is the **"Correlation Collapse"**: the pooled AVR–BF1 Pearson r is **+0.0541 (p=0.51)**, statistically indistinguishable from zero. While Mamba exhibits a unique dual-stage fingerprint (Level 1 AVR **0.4600**, Level 4 AVR **0.1346**), this does not translate to a global boundary precision deficit. Mamba's O(N) linear scaling advantage over Transformer's O(N²) quadratic attention is therefore not offset by any statistically verified spectral cost.
 
 ## 1. Key Performance Metrics
 
@@ -21,9 +21,11 @@ Models were evaluated on the held-out ISIC 2018 validation set ($N=519$) using r
 
 | Architecture | Paradigm | Global Dice (↑) | Boundary F1 (BF1) (↑) | Mean AVR (↓) |
 | :--- | :--- | :---: | :---: | :---: |
-| **VM-UNet (Mamba)** | Selective Scan | **0.9018** | 0.2291 | **0.2789** |
-| **UNet-ResNet50** | Convolutional | 0.8982 | 0.1722 | 0.2943 |
-| **Swin-Tiny** | Attention | 0.8976 | **0.2520** | 0.3275 |
+| **VM-UNet (Mamba)** | Selective Scan | **0.9027** | 0.2298 | **0.2799** |
+| **Swin-Tiny** | Attention | 0.9023 | **0.2540** | 0.3291 |
+| **UNet-ResNet50** | Convolutional | 0.9000 | 0.1900 | 0.2954 |
+
+*Source of truth: `results/boundary_results.csv`*
 
 ## 2. Core Scientific Findings
 
@@ -33,10 +35,12 @@ By mean-centering feature maps before computing the 2D-FFT, we isolate genuine h
 #### Stage-wise Alias Volume Ratio (AVR, mean-centered)
 | Resolution Level | UNet AVR | Swin-UNet AVR | VM-UNet AVR |
 | :--- | :---: | :---: | :---: |
-| **Level 1 (~64x64)** | 0.3419 | 0.3291 | **0.4628** |
-| **Level 2 (~32x32)** | 0.3587 | 0.3671 | **0.3812** |
-| **Level 3 (~16x16)** | 0.2960 | 0.2493 | **0.1411** |
-| **Level 4 (~8x8)**   | 0.1804 | **0.3646** | **0.1307** |
+| **Level 1 (~64×64)** | 0.3427 | 0.3276 | **0.4600** |
+| **Level 2 (~32×32)** | 0.3613 | 0.3744 | **0.3840** |
+| **Level 3 (~16×16)** | 0.2974 | 0.2519 | **0.1408** |
+| **Level 4 (~8×8)**   | 0.1802 | 0.3623 | **0.1346** |
+
+*Source: `results/avr_stagewise_results_matched.csv`*
 
 #### Frequency Band Decomposition, Mamba (mean-centered)
 | Stage | Low Band (<0.25 Ny) | Mid Band (0.25-0.75 Ny) | High Band (>0.75 Ny) |

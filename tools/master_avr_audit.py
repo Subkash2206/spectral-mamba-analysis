@@ -143,11 +143,11 @@ def main():
         csv_data.append(f"{label},{s1},{s2},{s3},{s4}")
     print('='*80)
     
-    os.makedirs('results', exist_ok=True)
-    with open('results/avr_stagewise_results_matched.csv', 'w') as f:
+    os.makedirs('VM-UNet/results', exist_ok=True)
+    with open('VM-UNet/results/avr_stagewise_results_matched.csv', 'w') as f:
         f.write('model,stage1,stage2,stage3,stage4\n')
         f.write('\n'.join(csv_data) + '\n')
-    print('Saved results to results/avr_stagewise_results_matched.csv')
+    print('Saved results to VM-UNet/results/avr_stagewise_results_matched.csv')
 
 if __name__ == '__main__':
     main()

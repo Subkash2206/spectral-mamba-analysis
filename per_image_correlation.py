@@ -158,9 +158,12 @@ def main():
     r_part, p_part = pearsonr(resid_avr, resid_bf1)
     print(f'{"Partial (n=300)":<15} | r = {r_part:7.4f} | p = {p_part:.4e}'); print('='*60)
     csv_data.append(f"Partial,{r_part},{p_part}")
-    with open('correlation_results.csv', 'w') as f:
+    out_path = 'VM-UNet/results/correlation_results.csv'
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    with open(out_path, 'w') as f:
         f.write('model,pearson_r,p_value\n')
         f.write('\n'.join(csv_data) + '\n')
+    print(f'Saved results to {out_path}')
 
 if __name__ == '__main__':
     main()

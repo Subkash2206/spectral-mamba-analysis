@@ -268,11 +268,13 @@ def main():
             highs = [x[2] for x in band_data[model][l]]
             csv_rows.append(f"{model},{l},{res_names[l]},{np.mean(lows)},{np.mean(mids)},{np.mean(highs)},{np.std(lows)},{np.std(mids)},{np.std(highs)}")
     
-    with open('results/band_decomposition_results.csv', 'w') as f:
+    band_csv_path = 'VM-UNet/results/band_decomposition_results.csv'
+    os.makedirs(os.path.dirname(band_csv_path), exist_ok=True)
+    with open(band_csv_path, 'w') as f:
         f.write('model,resolution_level,resolution,low_band_ratio,mid_band_ratio,high_band_ratio,low_std,mid_std,high_std\n')
         f.write('\n'.join(csv_rows) + '\n')
 
-    print(f"Band decomposition data successfully saved to results/band_decomposition_results.csv")
+    print(f"Band decomposition data successfully saved to {band_csv_path}")
 
 if __name__ == '__main__':
     main()
