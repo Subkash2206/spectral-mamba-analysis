@@ -62,13 +62,13 @@ Mean IoU consistency between original predictions and predictions from sub-pixel
 
 | Model | Shift 1 | Shift 2 | Shift 3 | Shift 4 | Shift 5 |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **UNet-ResNet50** | **0.9863** | **0.9748** | **0.9681** | **0.9700** | **0.9667** |
-| **Swin-Tiny** | 0.9505 | 0.9474 | 0.9491 | 0.9496 | 0.9285 |
-| **VM-UNet (Mamba)** | 0.9688 | 0.9571 | 0.9545 | 0.9584 | **0.9531** |
+| **UNet-ResNet50** | **0.9864** | **0.9759** | **0.9678** | **0.9708** | **0.9693** |
+| **Swin-Tiny** | 0.9670 | 0.9531 | 0.9484 | 0.9504 | 0.9196 |
+| **VM-UNet (Mamba)** | 0.9755 | 0.9615 | 0.9551 | 0.9580 | **0.9532** |
 
 ### Visualization: Shift Consistency Curves
 ![Shift Consistency Curves](results/figures/shift_consistency_curves.png)
-**Explanation**: VM-UNet maintains a Shift-5 consistency of **0.9531**, outperforming Swin-Tiny (0.9285) across all shift magnitudes. This demonstrates that Mamba's selective scan mechanism provides superior translation equivariance compared to window-based attention, while remaining competitive with CNNs. The spectral "Dual-Stage" behavior does not translate into translational instability at inference time.
+**Explanation**: VM-UNet maintains a Shift-5 consistency of **0.9532**, outperforming Swin-Tiny (**0.9196**) across all shift magnitudes. This demonstrates that Mamba's selective scan mechanism provides superior translation equivariance compared to window-based attention, while remaining competitive with CNNs. The spectral "Dual-Stage" behavior does not translate into translational instability at inference time.
 
 ---
 
