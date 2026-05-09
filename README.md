@@ -86,14 +86,14 @@ Mean-centered 2D-FFT heatmaps exposing architectural periodic noise.
 
 ---
 
-## 🧪 Methodology and Audit Rigor
+## Methodology and Audit Rigor
 
 1. **Global Mean-Centering**: All spectral metrics utilize $f_{map} - \mu(f_{map})$ to isolate frequency noise from intensity bias (DC component). This correction was the key methodological step that resolved the "Intensity Bias" artifact in prior correlation analyses.
 2. **Strict=True Protocol**: Enforced 100% state-dict matching using the `flexible_load` utility. This ensures every weight, including selective scan parameters, is authenticated.
 3. **Boundary F1 Protocol**: Edge precision calculated using morphological erosion with a distance threshold $D=2$.
 4. **Complexity Context**: Mamba's O(N) linear scaling versus Transformer's O(N²) quadratic self-attention is the primary motivation for investigating whether spectral trade-offs exist. The Correlation Collapse finding confirms these trade-offs do not manifest as boundary failures at ISIC18 scale.
 
-## 🛠️ Reproduction Guide
+## Reproduction Guide
 ```bash
 python tools/boundary_eval.py    # Global Performance (N=519)
 python run_band_only.py          # Band Decomposition & Shift Analysis
