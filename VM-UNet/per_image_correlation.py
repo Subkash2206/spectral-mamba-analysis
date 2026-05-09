@@ -83,7 +83,7 @@ def main():
     mask_dir = 'data/isic18/train/masks/'
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
-    val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]
+    val_imgs = img_paths[int(0.8*len(img_paths)):]
 
     results = {'UNet': {'avr': [], 'bf1': []}, 'Swin': {'avr': [], 'bf1': []}, 'Mamba': {'avr': [], 'bf1': []}}
 
@@ -151,21 +151,24 @@ def main():
         all_avr.extend(avr_arr)
         all_bf1.extend(bf1_arr)
         
+    N = len(val_imgs)
+    total_n = 3 * N
+
     r_all, p_all = pearsonr(all_avr, all_bf1)
     print('-'*60)
-    print(f'{"Pooled (n=150)":<15} | r = {r_all:7.4f} | p = {p_all:.4e}')
+    print(f'{"Pooled (n=" + str(total_n) + ")":<15} | r = {r_all:7.4f} | p = {p_all:.4e}')
     csv_data.append(f"Pooled,{r_all},{p_all}")
     
     # Partial correlation controlling for model identity
     all_avr_arr = np.array(all_avr)
     all_bf1_arr = np.array(all_bf1)
     
-    # Create one-hot matrix for the 3 models (50 each)
+    # Create one-hot matrix for the 3 models
     # UNet: col 0, Swin: col 1, Mamba: col 2
-    X = np.zeros((150, 3))
-    X[0:50, 0] = 1
-    X[50:100, 1] = 1
-    X[100:150, 2] = 1
+    X = np.zeros((total_n, 3))
+    X[0:N, 0] = 1
+    X[N:2*N, 1] = 1
+    X[2*N:3*N, 2] = 1
     
     # Regress AVR on model identity
     beta_avr, _, _, _ = np.linalg.lstsq(X, all_avr_arr, rcond=None)
@@ -178,7 +181,7 @@ def main():
     # Compute Pearson r between residuals
     r_part, p_part = pearsonr(resid_avr, resid_bf1)
     
-    print(f'{"Partial (n=150)":<15} | r = {r_part:7.4f} | p = {p_part:.4e}')
+    print(f'{"Partial (n=" + str(total_n) + ")":<15} | r = {r_part:7.4f} | p = {p_part:.4e}')
     print('='*60)
     csv_data.append(f"Partial,{r_part},{p_part}")
     

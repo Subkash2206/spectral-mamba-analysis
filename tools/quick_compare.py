@@ -89,7 +89,7 @@ def main():
     random.seed(42)
     random.shuffle(all_imgs)
     split_idx = int(0.8 * len(all_imgs))
-    val_imgs = all_imgs[split_idx:split_idx+50] # Take first 50 from Val Set
+    val_imgs = all_imgs[split_idx:] # Take Val Set
     
     transform_256 = transforms.Compose([
         transforms.Resize((256, 256)),

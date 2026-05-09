@@ -63,7 +63,7 @@ def main():
     img_dir = 'data/isic18/train/images/'
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
-    val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]
+    val_imgs = img_paths[int(0.8*len(img_paths)):]
     
     shifts = [1, 2, 3, 4, 5]
     results = defaultdict(lambda: defaultdict(list))

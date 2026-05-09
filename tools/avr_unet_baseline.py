@@ -53,7 +53,7 @@ def main():
 
     # 4. Load 50 images
     img_dir = 'data/isic18/train/images/'
-    img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))[:50]
+    img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     print(f'Found {len(img_paths)} images for analysis.')
     
     transform = transforms.Compose([

@@ -37,7 +37,7 @@ def main():
 
     img_paths = sorted(glob.glob('data/isic18/train/images/*.jpg'))
     import random; random.seed(42); random.shuffle(img_paths)
-    val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]
+    val_imgs = img_paths[int(0.8*len(img_paths)):]
 
     t256 = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor(), transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])])
     t224 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])])
