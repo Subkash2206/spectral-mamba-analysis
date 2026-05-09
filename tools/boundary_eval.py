@@ -68,11 +68,11 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'UTMOST PRECISION AUDIT: Starting Full Validation Evaluation on {device}...')
 
-    # 1. Reproduce Training Split (Seed 42, 80/20)
+    # 1. Evaluate on Validation Set
     img_dir = os.path.join(ROOT, 'VM-UNet/data/isic18/train/images/')
     mask_dir = os.path.join(ROOT, 'VM-UNet/data/isic18/train/masks/')
     all_imgs = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
-    random.seed(42); random.shuffle(all_imgs)
+    import random; random.seed(42); random.shuffle(all_imgs)
     split_idx = int(0.8 * len(all_imgs))
     val_imgs = all_imgs[split_idx:]
     print(f'Total Images: {len(all_imgs)} | Full Validation Set Size: {len(val_imgs)}')

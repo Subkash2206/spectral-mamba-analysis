@@ -1,0 +1,4 @@
+model,mean_dice,mean_bf1
+VM-UNet,0.9027,0.2298
+UNet-ResNet50,0.9000,0.1900
+Swin-Tiny,0.9023,0.2540

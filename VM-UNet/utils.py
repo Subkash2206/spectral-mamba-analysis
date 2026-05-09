@@ -512,7 +512,10 @@ def test_single_volume(image, label, net, classes, patch_size=[256, 256],
             net.eval()
             with torch.no_grad():
                 outputs = net(input)
-                out = torch.argmax(torch.softmax(outputs, dim=1), dim=1).squeeze(0)
+                if classes == 1:
+                    out = (torch.sigmoid(outputs) > 0.5).float().squeeze(0)
+                else:
+                    out = torch.argmax(torch.softmax(outputs, dim=1), dim=1).squeeze(0)
                 out = out.cpu().detach().numpy()
                 if x != patch_size[0] or y != patch_size[1]:
                     pred = zoom(out, (x / patch_size[0], y / patch_size[1]), order=0)
@@ -524,7 +527,11 @@ def test_single_volume(image, label, net, classes, patch_size=[256, 256],
             0).unsqueeze(0).float().cuda()
         net.eval()
         with torch.no_grad():
-            out = torch.argmax(torch.softmax(net(input), dim=1), dim=1).squeeze(0)
+            outputs = net(input)
+            if classes == 1:
+                out = (torch.sigmoid(outputs) > 0.5).float().squeeze(0)
+            else:
+                out = torch.argmax(torch.softmax(outputs, dim=1), dim=1).squeeze(0)
             prediction = out.cpu().detach().numpy()
     metric_list = []
     for i in range(1, classes):

@@ -154,7 +154,8 @@ def main():
     mask_dir = 'VM-UNet/data/isic18/train/masks/'
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
-    val_imgs = img_paths[int(0.8*len(img_paths)):int(0.8*len(img_paths))+50]
+    split_idx = int(0.8 * len(img_paths))
+    val_imgs = img_paths[split_idx:] # Full validation set
 
     # Data collection
     band_data = defaultdict(lambda: defaultdict(list))

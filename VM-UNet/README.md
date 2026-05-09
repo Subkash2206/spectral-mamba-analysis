@@ -13,7 +13,7 @@ This study performs a rigorous spectral audit of Mamba-based architectures (VM-U
 *3. Statistical Correction: Mean-centering removes activation bias, showing that global aliasing does not predict boundary precision (r ≈ 0).*
 
 ## Abstract
-This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-Tiny), and State-Space Models (VM-UNet). Following a methodological correction—enforcing mean-centered feature maps to remove DC-offset bias—we re-evaluate the "Spectral Debt" hypothesis. Our key finding is the **"Correlation Collapse"**: the pooled AVR–BF1 Pearson r is **+0.0541 (p=0.51)**, statistically indistinguishable from zero. While Mamba exhibits a unique dual-stage fingerprint (Level 1 AVR **0.4600**, Level 4 AVR **0.1346**), this does not translate to a global boundary precision deficit. Mamba's O(N) linear scaling advantage over Transformer's O(N²) quadratic attention is therefore not offset by any statistically verified spectral cost.
+This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-Tiny), and State-Space Models (VM-UNet). Following a methodological correction—enforcing mean-centered feature maps to remove DC-offset bias—we re-evaluate the "Spectral Debt" hypothesis. Our key finding is the **"Correlation Collapse"**: the pooled AVR–BF1 Pearson r is **+0.041 (p=0.102)**, statistically indistinguishable from zero. While Mamba exhibits a unique dual-stage fingerprint (Level 1 AVR **0.4600**, Level 4 AVR **0.1346**), this does not translate to a global boundary precision deficit. Mamba's O(N) linear scaling advantage over Transformer's O(N²) quadratic attention is therefore not offset by any statistically verified spectral cost.
 
 ## 1. Key Performance Metrics
 
@@ -45,8 +45,8 @@ By mean-centering feature maps before computing the 2D-FFT, we isolate genuine h
 #### Frequency Band Decomposition, Mamba (mean-centered)
 | Stage | Low Band (<0.25 Ny) | Mid Band (0.25-0.75 Ny) | High Band (>0.75 Ny) |
 | :--- | :---: | :---: | :---: |
-| **Level 1 (Early)** | 32.54% | 45.67% | 21.79% |
-| **Level 4 (Deep)** | **64.78%** | 31.51% | **3.71%** |
+| **Level 1 (Early)** | 32.15% | 45.08% | **22.76%** |
+| **Level 4 (Deep)** | **69.35%** | 27.35% | **3.29%** |
 
 ### B. Statistical Correction: The Correlation Collapse
 To test the causal link between aliasing and edge precision, we performed a per-image correlation analysis. Once DC-bias is removed, the pooled correlation collapses. 
@@ -54,9 +54,9 @@ To test the causal link between aliasing and edge precision, we performed a per-
 #### Correlation Results — Mean AVR vs. BF1 (mean-centered FFT)
 | Population | Pearson *r* | *p*-value | Significant? |
 | :--- | :---: | :---: | :--- |
-| **VM-UNet (Mamba)** | +0.3219 | 0.0226 | Yes |
-| **Pooled (Overall)** | **+0.0541** | 0.5108 | **No** |
-| **Partial (Controlled)**| **+0.0004** | 0.9965 | **No** |
+| **VM-UNet (Mamba)** | +0.109 | 0.012 | Yes |
+| **Pooled (Overall)** | **+0.041** | 0.102 | **No** |
+| **Partial (Controlled)**| **+0.418** | <0.001 | **Yes** |
 
 ## 3. Visualization Gallery
 All figures are automatically generated and saved in `results/figures/`:

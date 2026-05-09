@@ -101,7 +101,7 @@ def main():
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
     split_idx = int(0.8 * len(img_paths))
-    val_imgs = img_paths[split_idx:split_idx+100] # Robust 100 images
+    val_imgs = img_paths[split_idx:] # Full validation set
 
     results = {'UNet': {'avr': [], 'bf1': []}, 'Swin': {'avr': [], 'bf1': []}, 'Mamba': {'avr': [], 'bf1': []}}
 

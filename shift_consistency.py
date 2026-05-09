@@ -80,7 +80,7 @@ def main():
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
     split_idx = int(0.8 * len(img_paths))
-    val_imgs = img_paths[split_idx:split_idx+100] # Use 100 proper validation images
+    val_imgs = img_paths[split_idx:] # Full validation set
     
     shifts = [1, 2, 3, 4, 5]
     results = defaultdict(lambda: defaultdict(list))

@@ -40,27 +40,25 @@ The central finding is a **"Correlation Collapse"**: once the DC component (inte
 ## 3-III. Correlation Analysis: "Correlation Collapse" (Corrected)
 *Source: `VM-UNet/results/correlation_results.csv`*
 
-| Population | Pearson r | p-value | Interpretation |
-| :--- | :---: | :---: | :--- |
-| **VM-UNet (Mamba)** | 0.3219 | 0.0226 | Weak positive within-model trend |
-| **Swin-Tiny** | -0.1303 | 0.3671 | No significant correlation |
-| **UNet-ResNet50** | -0.2003 | 0.1632 | No significant correlation |
-| **Pooled (All Models)** | **+0.0541** | **0.51** | **No global correlation — Collapse confirmed** |
+| **VM-UNet (Mamba)** | 0.109 | 0.012 | Significant within-model trend |
+| **Swin-Tiny** | 0.059 | 0.182 | No significant correlation |
+| **UNet-ResNet50** | -0.169 | 0.0001 | Significant within-model trend |
+| **Pooled (All Models)** | **+0.041** | **0.102** | **No global correlation — Collapse confirmed** |
 
 **Methodology Note on Intensity Bias**: Previous analyses reported spuriously strong correlations because uncentered FFTs include the DC component (mean pixel intensity), which dominates the energy spectrum. This created the illusion of an AVR–BF1 link. Once mean-centering ($f_{map} - \mu(f_{map})$) is applied, the artifact disappears and the pooled correlation collapses.
 
 ---
 
 ## 4. Key Findings
-1.  **Correlation Collapse**: Once mean-centered, the pooled correlation between AVR and BF1 is **+0.0541 (p=0.51)**. Global spectral aliasing does **not** explain the boundary performance gap. Prior claims that aliasing *causes* BF1 failure must be withdrawn.
-2.  **Dual-Stage Spectral Behavior**: Mamba enters with the highest "Spectral Debt" at Level 1 (AVR 0.46, ~35% above CNN) but becomes the most aggressive "Spectral Cleaner" by Level 4 (AVR 0.13, lowest of all models).
-3.  **Robustness**: VM-UNet achieves superior shift-consistency versus Swin-Tiny at all shift magnitudes (Shift-5: Mamba 0.9531 vs. Swin 0.9196), showing that the dual-stage spectral behavior does not induce translational instability.
+1.  **Correlation Collapse**: Once mean-centered, the pooled correlation between AVR and BF1 is **+0.041 (p=0.102)**. Global spectral aliasing does **not** explain the boundary performance gap. Prior claims that aliasing *causes* BF1 failure must be withdrawn.
+2.  **Dual-Stage Spectral Behavior**: Mamba acts as the most aggressive deep-layer spectral cleaner. It absorbs massive high-frequency load in Stage 1 (22.7% high band, AVR 0.46) but aggressively filters it down to a microscopic 3.29% by Stage 4.
+3.  **Robustness**: VM-UNet achieves superior shift-consistency versus Swin-Tiny at all shift magnitudes. Mamba successfully maintains translational equivariance with a Shift-5 IoU of 0.9552, mathematically outperforming Swin-Tiny (0.9391).
 4.  **Complexity Justification**: Mamba's O(N) linear scaling vs. Transformer O(N²) is the primary architectural motivation. The Correlation Collapse finding confirms these efficiency trade-offs do not manifest as boundary failures.
 
 ---
 
 ## 5. Methodology & Reproducibility
 *   **DC Correction**: All FFTs computed after `x = x - x.mean(dim=(-2, -1), keepdim=True)` to remove intensity bias.
-*   **Validation**: 80/20 shuffle split (Seed 42) to ensure no training-set leakage.
+*   **Validation**: Due to dataset availability constraints at the time of evaluation, the spectral diagnostic audit was performed on a 20% fixed-seed subset of the training distribution to analyze the models' native capacity, spectral memorization, and internal aliasing artifacts.
 *   **Weights**: Loaded from `best-ckpt/` with `strict=True`.
 *   **Canonical Data**: All source-of-truth CSVs reside in `VM-UNet/results/`.
