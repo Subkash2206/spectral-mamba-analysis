@@ -54,7 +54,7 @@ The central finding is a **"Correlation Collapse"**: once the DC component (inte
 ## 4. Key Findings
 1.  **Correlation Collapse**: Once mean-centered, the pooled correlation between AVR and BF1 is **+0.0541 (p=0.51)**. Global spectral aliasing does **not** explain the boundary performance gap. Prior claims that aliasing *causes* BF1 failure must be withdrawn.
 2.  **Dual-Stage Spectral Behavior**: Mamba enters with the highest "Spectral Debt" at Level 1 (AVR 0.46, ~35% above CNN) but becomes the most aggressive "Spectral Cleaner" by Level 4 (AVR 0.13, lowest of all models).
-3.  **Robustness**: VM-UNet achieves superior shift-consistency versus Swin-Tiny at all shift magnitudes (Shift-5: Mamba 0.9532 vs. Swin 0.9196), showing that the dual-stage spectral behavior does not induce translational instability.
+3.  **Robustness**: VM-UNet achieves superior shift-consistency versus Swin-Tiny at all shift magnitudes (Shift-5: Mamba 0.9531 vs. Swin 0.9196), showing that the dual-stage spectral behavior does not induce translational instability.
 4.  **Complexity Justification**: Mamba's O(N) linear scaling vs. Transformer O(N²) is the primary architectural motivation. The Correlation Collapse finding confirms these efficiency trade-offs do not manifest as boundary failures.
 
 ---
