@@ -17,7 +17,6 @@ This repository contains a comparative spectral analysis of three dominant archi
 
 ## 1. Key Performance Metrics
 
-Models were evaluated on the held-out ISIC 2018 validation set ($N=519$) using rigorously verified weight loading and standardized preprocessing protocols.
 
 | Architecture | Paradigm | Global Dice (↑) | Boundary F1 (BF1) (↑) | Mean AVR (↓) |
 | :--- | :--- | :---: | :---: | :---: |
