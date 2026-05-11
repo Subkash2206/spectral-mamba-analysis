@@ -55,7 +55,7 @@ To test the causal link between aliasing and edge precision, we performed a per-
 | :--- | :---: | :---: | :--- |
 | **VM-UNet (Mamba)** | +0.0998 | 0.0229 | Yes |
 | **Pooled (Overall)** | **+0.0108** | 0.6704 | **No** |
-| **Partial (Controlled)**| **+0.4933** | <0.001 | **Yes** |
+| **Partial (Controlled)**| **-0.0001** | 0.9956 | **No** |
 
 ## 3. Visualization Gallery
 All figures are automatically generated and saved in `results/figures/`:

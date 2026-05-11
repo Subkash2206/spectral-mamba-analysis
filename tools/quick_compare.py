@@ -64,7 +64,7 @@ def main():
     vmunet = VMUNet().to(device)
     ckpt_v = torch.load('best-ckpt/best-vmunet-scratch-isic18.pth', map_location=device)
     v_state = ckpt_v['model'] if 'model' in ckpt_v else ckpt_v
-    vmunet.load_state_dict(v_state, strict=False)
+    vmunet.load_state_dict(v_state, strict=True)
     vmunet.eval()
     
     # 2. UNet (Final trained)

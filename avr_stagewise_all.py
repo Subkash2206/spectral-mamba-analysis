@@ -34,7 +34,8 @@ def flexible_load(model, ckpt_path):
         if has_vmunet_prefix and not model_has_vmunet_prefix: new_k = k.replace('vmunet.', '')
         elif not has_vmunet_prefix and model_has_vmunet_prefix: new_k = 'vmunet.' + k
         new_state_dict[new_k] = v
-    model.load_state_dict(new_state_dict, strict=False)
+    model.load_state_dict(new_state_dict, strict=True)
+    print("  SUCCESS: Model loaded with strict=True.")
     return model
 
 def compute_avr(fmap):

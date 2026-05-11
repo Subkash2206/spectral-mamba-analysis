@@ -45,7 +45,7 @@ The most significant finding of this audit is the **collapse of the AVR–BF1 co
 | **Swin-Tiny** | +0.0188 | 0.6686 | No significant correlation |
 | **UNet-ResNet50** | -0.1880 | 0.00001 | Significant within-model trend |
 | **Pooled (All Models)** | **+0.0108** | **0.6704** | **No global correlation — Collapse confirmed** |
-| **Partial (Controlled)** | +0.4933 | <0.001 | Strong structural link |
+| **Partial (Controlled)** | -0.0001 | 0.9956 | No structural link |
 
 *Source: `results/correlation_results.csv`*
 

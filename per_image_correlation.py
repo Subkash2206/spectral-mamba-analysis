@@ -177,14 +177,21 @@ def main():
         all_avr.extend(avr_arr); all_bf1.extend(bf1_arr)
         
     r_all, p_all = pearsonr(all_avr, all_bf1)
-    print('-'*60); print(f'{"Pooled (n=300)":<15} | r = {r_all:7.4f} | p = {p_all:.4e}')
+    print('-'*60); print(f'{"Pooled (n=" + str(len(all_avr)) + ")":<15} | r = {r_all:7.4f} | p = {p_all:.4e}')
     csv_data.append(f"Pooled,{r_all},{p_all}")
     
-    X = np.zeros((len(all_avr), 3)); X[0:100, 0] = 1; X[100:200, 1] = 1; X[200:300, 2] = 1
+    print(f"Model counts: UNet={len(results['UNet']['avr'])}, Swin={len(results['Swin']['avr'])}, Mamba={len(results['Mamba']['avr'])}")
+    X = np.zeros((len(all_avr), 3))
+    start_idx = 0
+    for i, m in enumerate(['UNet', 'Swin', 'Mamba']):
+        model_len = len(results[m]['avr'])
+        X[start_idx:start_idx + model_len, i] = 1
+        start_idx += model_len
+
     resid_avr = np.array(all_avr) - X.dot(np.linalg.lstsq(X, np.array(all_avr), rcond=None)[0])
     resid_bf1 = np.array(all_bf1) - X.dot(np.linalg.lstsq(X, np.array(all_bf1), rcond=None)[0])
     r_part, p_part = pearsonr(resid_avr, resid_bf1)
-    print(f'{"Partial (n=300)":<15} | r = {r_part:7.4f} | p = {p_part:.4e}'); print('='*60)
+    print(f'{"Partial (n=" + str(len(all_avr)) + ")":<15} | r = {r_part:7.4f} | p = {p_part:.4e}'); print('='*60)
     csv_data.append(f"Partial,{r_part},{p_part}")
     out_path = 'VM-UNet/results/correlation_results.csv'
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

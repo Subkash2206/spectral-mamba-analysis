@@ -173,8 +173,7 @@ def main():
         all_avr.extend(avr_arr)
         all_bf1.extend(bf1_arr)
         
-    N = len(val_imgs)
-    total_n = 3 * N
+    total_n = len(all_avr)
 
     r_all, p_all = pearsonr(all_avr, all_bf1)
     print('-'*60)
@@ -185,12 +184,13 @@ def main():
     all_avr_arr = np.array(all_avr)
     all_bf1_arr = np.array(all_bf1)
     
-    # Create one-hot matrix for the 3 models
-    # UNet: col 0, Swin: col 1, Mamba: col 2
+    print(f"Model counts: UNet={len(results['UNet']['avr'])}, Swin={len(results['Swin']['avr'])}, Mamba={len(results['Mamba']['avr'])}")
     X = np.zeros((total_n, 3))
-    X[0:N, 0] = 1
-    X[N:2*N, 1] = 1
-    X[2*N:3*N, 2] = 1
+    start_idx = 0
+    for i, m in enumerate(['UNet', 'Swin', 'Mamba']):
+        model_len = len(results[m]['avr'])
+        X[start_idx:start_idx + model_len, i] = 1
+        start_idx += model_len
     
     # Regress AVR on model identity
     beta_avr, _, _, _ = np.linalg.lstsq(X, all_avr_arr, rcond=None)

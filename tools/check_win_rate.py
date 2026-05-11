@@ -32,7 +32,7 @@ def compute_bf1(pred, target):
 
 def main():
     device = 'cuda'
-    vmunet = VMUNet().to(device); vmunet.load_state_dict(torch.load('best-ckpt/best-vmunet-scratch-isic18.pth', map_location=device), strict=False); vmunet.eval()
+    vmunet = VMUNet().to(device); vmunet.load_state_dict(torch.load('best-ckpt/best-vmunet-scratch-isic18.pth', map_location=device), strict=True); vmunet.eval()
     args = MockArgs(); config = get_config(args); swin = SwinUnet(config, img_size=224, num_classes=1).to(device); swin.load_state_dict(torch.load('best-ckpt/best-swinunet-isic18.pth', map_location=device)); swin.eval()
 
     img_paths = sorted(glob.glob('data/isic18/train/images/*.jpg'))
