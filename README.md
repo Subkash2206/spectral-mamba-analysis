@@ -82,7 +82,7 @@ Analysis of energy distribution across Low ($<0.25$), Mid ($0.25–0.75$), and H
 ### Spectral Fingerprints (FFT Power Grids)
 Mean-centered 2D-FFT heatmaps exposing architectural periodic noise.
 ![Power Spectrum Grid](results/figures/power_spectrum_grid.png)
-**Explanation**: The cross-shaped artifacts in the Mamba rows correspond to the four-directional selective scan mechanism. These are structural fingerprints of the SSM scan order. Critically, after mean-centering removes intensity bias, these artifacts show no statistically significant correlation with boundary degradation (pooled r=+0.054, p=0.51).
+**Explanation**: The cross-shaped artifacts in the Mamba rows correspond to the four-directional selective scan mechanism. These are structural fingerprints of the SSM scan order. Critically, after mean-centering removes intensity bias, these artifacts show no statistically significant correlation with boundary degradation (pooled r=+0.0108, p=0.6704).
 
 ---
 
