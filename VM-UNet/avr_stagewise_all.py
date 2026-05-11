@@ -67,7 +67,7 @@ def main():
     img_paths = sorted(glob.glob(os.path.join(img_dir, '*.jpg')) + glob.glob(os.path.join(img_dir, '*.png')))
     import random; random.seed(42); random.shuffle(img_paths)
     split_idx = int(0.8 * len(img_paths))
-    val_imgs = img_paths[split_idx:split_idx+100] # Use 100 proper validation images
+    val_imgs = img_paths[split_idx:] # Full validation split
     
     audit_results = defaultdict(list); stage_info = {}
     print(f'Auditing {len(val_imgs)} VALIDATION images...')
@@ -84,8 +84,9 @@ def main():
                 # Swin blocks output might be (B, L, C) or (B, H, W, C)
                 if f.dim() == 3:
                     B, L, C = f.shape; H = W = int(np.sqrt(L)); f = f.transpose(1, 2).reshape(B, C, H, W)
-                elif f.dim() == 4 and f.shape[-1] in [96, 192, 384, 768]:
-                    f = f.permute(0, 3, 1, 2)
+                elif f.dim() == 4:
+                    if f.shape[-1] > f.shape[1]:
+                        f = f.permute(0, 3, 1, 2)
                     B, C, H, W = f.shape
                 else:
                     B, C, H, W = f.shape
