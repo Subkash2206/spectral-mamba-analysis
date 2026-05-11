@@ -13,16 +13,16 @@ This study performs a rigorous spectral audit of Mamba-based architectures (VM-U
 *3. Statistical Correction: Mean-centering removes activation bias, showing that global aliasing does not predict boundary precision (r ≈ 0).*
 
 ## Abstract
-This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-Tiny), and State-Space Models (VM-UNet). Following a methodological correction—enforcing mean-centered feature maps to remove DC-offset bias—we re-evaluate the "Spectral Debt" hypothesis. Our key finding is the **"Correlation Collapse"**: the pooled AVR–BF1 Pearson r is **+0.041 (p=0.102)**, statistically indistinguishable from zero. While Mamba exhibits a unique dual-stage fingerprint (Level 1 AVR **0.4600**, Level 4 AVR **0.1346**), this does not translate to a global boundary precision deficit. Mamba's O(N) linear scaling advantage over Transformer's O(N²) quadratic attention is therefore not offset by any statistically verified spectral cost.
+This repository contains a comparative spectral analysis of three dominant architectural paradigms in medical image segmentation: Convolutional Neural Networks (UNet-ResNet50), Vision Transformers (Swin-Tiny), and State-Space Models (VM-UNet). Following a methodological correction—enforcing mean-centered feature maps to remove DC-offset bias—we re-evaluate the "Spectral Debt" hypothesis. Our key finding is the **"Correlation Collapse"**: the pooled AVR–BF1 Pearson r is **+0.0108 (p=0.6704)**, statistically indistinguishable from zero. While Mamba exhibits a unique dual-stage fingerprint (Level 1 AVR **0.4600**, Level 4 AVR **0.1346**), this does not translate to a global boundary precision deficit. Mamba's O(N) linear scaling advantage over Transformer's O(N²) quadratic attention is therefore not offset by any statistically verified spectral cost.
 
 ## 1. Key Performance Metrics
 
 
 | Architecture | Paradigm | Global Dice (↑) | Boundary F1 (BF1) (↑) | Mean AVR (↓) |
 | :--- | :--- | :---: | :---: | :---: |
-| **VM-UNet (Mamba)** | Selective Scan | **0.9027** | 0.2298 | **0.2799** |
-| **Swin-Tiny** | Attention | 0.9023 | **0.2540** | 0.3291 |
-| **UNet-ResNet50** | Convolutional | 0.9000 | 0.1900 | 0.2954 |
+| **VM-UNet (Mamba)** | Selective Scan | **0.9027** | 0.4939 | **0.2799** |
+| **Swin-Tiny** | Attention | 0.9023 | **0.5259** | 0.3291 |
+| **UNet-ResNet50** | Convolutions | 0.9000 | 0.4470 | 0.2954 |
 
 *Source of truth: `results/boundary_results.csv`*
 
@@ -53,9 +53,9 @@ To test the causal link between aliasing and edge precision, we performed a per-
 #### Correlation Results — Mean AVR vs. BF1 (mean-centered FFT)
 | Population | Pearson *r* | *p*-value | Significant? |
 | :--- | :---: | :---: | :--- |
-| **VM-UNet (Mamba)** | +0.109 | 0.012 | Yes |
-| **Pooled (Overall)** | **+0.041** | 0.102 | **No** |
-| **Partial (Controlled)**| **+0.418** | <0.001 | **Yes** |
+| **VM-UNet (Mamba)** | +0.0998 | 0.0229 | Yes |
+| **Pooled (Overall)** | **+0.0108** | 0.6704 | **No** |
+| **Partial (Controlled)**| **+0.4933** | <0.001 | **Yes** |
 
 ## 3. Visualization Gallery
 All figures are automatically generated and saved in `results/figures/`:

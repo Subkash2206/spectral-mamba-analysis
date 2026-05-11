@@ -9,7 +9,7 @@ import random
 from PIL import Image
 from torchvision import transforms
 import segmentation_models_pytorch as smp
-from scipy.ndimage import binary_erosion
+from scipy.ndimage import binary_erosion, distance_transform_edt
 from tqdm import tqdm
 
 # Add project root to path
@@ -56,13 +56,41 @@ def compute_dice(pred, gt):
     total = pred.sum() + gt.sum()
     return 2.0 * intersection / total if total > 0 else 1.0
 
-def compute_boundary_f1(pred, gt, iterations=2):
-    pred = pred.astype(bool); gt = gt.astype(bool)
-    pred_eroded = binary_erosion(pred, iterations=iterations)
-    gt_eroded = binary_erosion(gt, iterations=iterations)
-    pred_bound = pred & ~pred_eroded; gt_bound = gt & ~gt_eroded
-    tp = (pred_bound & gt_bound).sum(); fp = (pred_bound & ~gt_bound).sum(); fn = (~pred_bound & gt_bound).sum()
-    return 2.0 * tp / (2.0 * tp + fp + fn) if (2.0 * tp + fp + fn) > 0 else 1.0
+def compute_boundary_f1(pred, gt, tolerance=2):
+    # Cast both pred and gt to boolean arrays
+    pred = np.asarray(pred, dtype=bool)
+    gt = np.asarray(gt, dtype=bool)
+    
+    # Extract strictly 1-pixel thick boundaries
+    pred_boundary = pred ^ binary_erosion(pred, iterations=1)
+    gt_boundary = gt ^ binary_erosion(gt, iterations=1)
+    
+    total_pred_boundary_pixels = pred_boundary.sum()
+    total_gt_boundary_pixels = gt_boundary.sum()
+    
+    # Safety Check
+    if total_pred_boundary_pixels == 0 and total_gt_boundary_pixels == 0:
+        return 1.0
+    if total_pred_boundary_pixels == 0 or total_gt_boundary_pixels == 0:
+        return 0.0
+        
+    # Calculate distance maps (invert boundaries so they equal 0)
+    pred_dist_map = distance_transform_edt(~pred_boundary)
+    gt_dist_map = distance_transform_edt(~gt_boundary)
+    
+    # Calculate True Positives with tolerance
+    tp_pred = (pred_boundary & (gt_dist_map <= tolerance)).sum()
+    tp_gt = (gt_boundary & (pred_dist_map <= tolerance)).sum()
+    
+    # Calculate Precision and Recall
+    precision = tp_pred / total_pred_boundary_pixels
+    recall = tp_gt / total_gt_boundary_pixels
+    
+    # Return standard F1 score
+    if precision + recall == 0:
+        return 0.0
+        
+    return 2.0 * precision * recall / (precision + recall)
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

@@ -9,7 +9,7 @@ This research demonstrates that VM-UNet (Mamba) architectures exhibit a distinct
 | **1. Frequency Aliasing** | **2. Spectral Fingerprints** | **3. Correlation Collapse** |
 | :---: | :---: | :---: |
 | ![Band Decomposition](results/figures/band_decomposition.png) | ![Power Spectrum](results/figures/power_spectrum_grid.png) | ![Correlation Scatter](results/figures/avr_bf1_scatter.png) |
-| High-frequency retention in early stages; aggressive filtering in deep stages. | Artifacts exposed via mean-centered 2D-FFT, isolating noise from intensity. | Pooled AVR–BF1 correlation collapses to r=+0.041 (p=0.102) after DC removal. |
+| High-frequency retention in early stages; aggressive filtering in deep stages. | Artifacts exposed via mean-centered 2D-FFT, isolating noise from intensity. | Pooled AVR–BF1 correlation collapses to r=+0.0108 (p=0.670) after DC removal. |
 
 ---
 
@@ -18,9 +18,9 @@ Authenticated performance metrics on the full ISIC2018 validation set using the 
 
 | Architecture | Mean Dice Score | Boundary F1 (BF1) | Mean AVR (Spectral) | Audit Status |
 | :--- | :---: | :---: | :---: | :--- |
-| **VM-UNet (Mamba)** | **0.9027** | 0.2298 | **0.2799** | Authenticated |
-| **Swin-Tiny** | 0.9023 | **0.2540** | 0.3291 | Authenticated |
-| **UNet-ResNet50** | 0.9000 | 0.1900 | 0.2954 | Authenticated |
+| **VM-UNet (Mamba)** | **0.9027** | 0.4939 | **0.2799** | Authenticated |
+| **Swin-Tiny** | 0.9023 | **0.5259** | 0.3291 | Authenticated |
+| **UNet-ResNet50** | 0.9000 | 0.4470 | 0.2954 | Authenticated |
 
 **Technical Significance**: All three architectures achieve near-identical semantic accuracy (Dice ~0.90). Mamba's O(N) linear scaling — versus Transformer's O(N²) quadratic self-attention — makes it the most computationally efficient architecture at scale. The BF1 differences among models are not explained by spectral aliasing (see Section 3), indicating that boundary precision is governed by other inductive biases rather than SSM scan artifacts alone.
 
@@ -46,14 +46,14 @@ Per-image Pearson correlation between spectral aliasing (AVR) and boundary segme
 
 | Population | Pearson r | p-value | Interpretation |
 | :--- | :---: | :---: | :--- |
-| **VM-UNet (Mamba)** | 0.109 | 0.012 | Significant within-model trend |
-| **Swin-Tiny** | 0.059 | 0.182 | No significant correlation |
-| **UNet-ResNet50** | -0.169 | 0.0001 | Significant within-model trend |
-| **Pooled (All Models)** | **+0.041** | **0.102** | **No global correlation — Collapse confirmed** |
+| **VM-UNet (Mamba)** | 0.0998 | 0.0229 | Significant within-model trend |
+| **Swin-Tiny** | 0.0188 | 0.6686 | No significant correlation |
+| **UNet-ResNet50** | -0.1880 | 0.00001 | Significant within-model trend |
+| **Pooled (All Models)** | **+0.0108** | **0.6704** | **No global correlation — Collapse confirmed** |
 
 ### Visualization: Correlation Scatter and Regression
 ![Correlation Scatter](results/figures/avr_bf1_scatter.png)
-**Explanation**: This is the **"Correlation Collapse"** — the central finding of this audit. Mamba's internal aliasing significantly correlates with its boundary failure ($r=0.109, p=0.012$), but the pooled Pearson r collapses to **+0.041 (p=0.102)** — statistically indistinguishable from zero. This confirms the "correlation collapse" and proves this phenomenon is architecture-specific, not just a dataset quirk. Mamba's O(N) scalability advantage therefore comes without a global, statistically verifiable spectral cost to boundary precision.
+**Explanation**: This is the **"Correlation Collapse"** — the central finding of this audit. Mamba's internal aliasing significantly correlates with its boundary failure ($r=0.0998, p=0.0229$), but the pooled Pearson r collapses to **+0.0108 (p=0.6704)** — statistically indistinguishable from zero. This confirms the "correlation collapse" and proves this phenomenon is architecture-specific, not just a dataset quirk. Mamba's O(N) scalability advantage therefore comes without a global, statistically verifiable spectral cost to boundary precision.
 
 ---
 

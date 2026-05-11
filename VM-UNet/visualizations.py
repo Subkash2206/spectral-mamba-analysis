@@ -9,7 +9,7 @@ from PIL import Image
 from torchvision import transforms
 from collections import defaultdict
 import segmentation_models_pytorch as smp
-from scipy.ndimage import binary_erosion
+from scipy.ndimage import binary_erosion, distance_transform_edt
 from scipy.stats import pearsonr
 
 # Set clean academic style
