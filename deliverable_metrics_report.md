@@ -42,6 +42,7 @@ The central finding is a **"Correlation Collapse"**: once the DC component (inte
 | **Swin-Tiny** | 0.0188 | 0.6686 | No significant correlation |
 | **UNet-ResNet50** | -0.1880 | 0.00001 | Significant within-model trend |
 | **Pooled (All Models)** | **+0.0108** | **0.6704** | **No global correlation — Collapse confirmed** |
+| **Partial (Controlled)** | **-0.0001** | **0.9956** | **No structural link** |
 
 **Methodology Note on Intensity Bias**: Previous analyses reported spuriously strong correlations because uncentered FFTs include the DC component (mean pixel intensity), which dominates the energy spectrum. This created the illusion of an AVR–BF1 link. Once mean-centering ($f_{map} - \mu(f_{map})$) is applied, the artifact disappears and the pooled correlation collapses.
 

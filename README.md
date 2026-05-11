@@ -50,6 +50,7 @@ Per-image Pearson correlation between spectral aliasing (AVR) and boundary segme
 | **Swin-Tiny** | 0.0188 | 0.6686 | No significant correlation |
 | **UNet-ResNet50** | -0.1880 | 0.00001 | Significant within-model trend |
 | **Pooled (All Models)** | **+0.0108** | **0.6704** | **No global correlation — Collapse confirmed** |
+| **Partial (Controlled)** | **-0.0001** | **0.9956** | **No structural link** |
 
 ### Visualization: Correlation Scatter and Regression
 ![Correlation Scatter](results/figures/avr_bf1_scatter.png)
