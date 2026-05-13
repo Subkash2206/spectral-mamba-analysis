@@ -36,7 +36,7 @@ Three architectures, one dataset, one question: does Mamba's spectral aliasing c
 | **What it shows** | Mamba front-loads high-frequency energy at Stage 1, then aggressively self-corrects by Stage 4 | Mean-centered 2D-FFT heatmaps expose cross-shaped scan artifacts unique to the SSM scan order | Pooled AVR-BF1 Pearson *r* collapses to +0.0108 (*p* = 0.670) after DC removal |
 | **What it means** | A dual-stage spectral fingerprint not shared by CNNs or Transformers | Structurally distinctive, not pathological | Spectral aliasing does not globally explain boundary failure |
 
-Mamba's O(N) linear scaling advantage over Transformer's O(N²) self-attention comes without a statistically verifiable spectral cost to boundary precision. The aliasing is architectural, not pathological.
+Mamba's O(N) linear scaling advantage over Transformer's O(N²) self-attention comes without a statistically verifiable spectral cost to boundary precision. The observed aliasing patterns appear to be architectural characteristics of the SSM scan mechanism rather than pathological predictors of boundary failure.
 
 ---
 
