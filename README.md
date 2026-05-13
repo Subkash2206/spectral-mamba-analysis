@@ -416,4 +416,6 @@ The VM-UNet architecture is adapted from [VM-UNet (Ruan et al., 2024)](https://g
 
 ## License
 
-This repository is released under the MIT License. See `LICENSE` for details. The VM-UNet and Swin-UNet components retain their respective upstream licenses.
+This repository is released under the Apache License 2.0. See `LICENSE` for details.
+
+The VM-UNet and Swin-UNet components retain their respective upstream licenses.
