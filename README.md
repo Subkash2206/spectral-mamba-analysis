@@ -337,7 +337,7 @@ Scripts marked `[AUTHORITATIVE]` write the canonical result CSVs. All other scri
 Install dependencies:
 
 ```bash
-pip install torch torchvision segmentation-models-pytorch scipy matplotlib tqdm pillow
+pip install -r requirements.txt
 ```
 
 ### Training (skip if using provided checkpoints)
